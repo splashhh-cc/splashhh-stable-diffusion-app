@@ -38,6 +38,11 @@ export default defineConfig(({ mode }) => {
           target: 'ws://127.0.0.1:9090',
           ws: true,
         },
+        '/get_challenge': {
+          target: 'http://127.0.0.1:9090/get_challenge',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/get_challenge/, ''),
+        }
       },
     },
     build: {

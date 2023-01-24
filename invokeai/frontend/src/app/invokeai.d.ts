@@ -292,3 +292,7 @@ export declare type UploadOutpaintingMergeImagePayload = {
   dataURL: string;
   name: string;
 };
+
+export declare type GetChallengeResponse = {
+  challenge: string;
+};

@@ -65,6 +65,7 @@ export type BackendGenerationParameters = {
   with_variations?: Array<Array<number>>;
   variation_amount?: number;
   enable_image_debugging?: boolean;
+  user_id?: string;
 };
 
 export type BackendEsrGanParameters = {
