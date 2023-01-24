@@ -121,6 +121,13 @@ class InvokeAIWebServer:
             else:
                 return send_from_directory(self.app.static_folder, "index.html")
 
+        @self.app.route("/get_challenge", methods=["get"])
+        def get_challenge():
+            response = {
+                "challenge": 'hard-challenge #' + str(uuid4()),
+            }
+            return make_response(response, 200)
+
         @self.app.route("/upload", methods=["POST"])
         def upload():
             try:
@@ -321,7 +328,7 @@ class InvokeAIWebServer:
                     socketio.emit(
                         "foundModels",
                         {'search_folder': search_folder, 'found_models': found_models},
-                    )            
+                    )
             except Exception as e:
                 self.socketio.emit("error", {"message": (str(e))})
                 print("\n")
@@ -542,7 +549,7 @@ class InvokeAIWebServer:
         @socketio.on("requestImages")
         def handle_request_images(category, earliest_mtime=None):
             try:
-                page_size = 50
+                page_size = 10
 
                 base_path = (
                     self.result_path if category == "result" else self.init_image_path
@@ -618,7 +625,7 @@ class InvokeAIWebServer:
 
         @socketio.on("generateImage")
         def handle_generate_image_event(
-            generation_parameters, esrgan_parameters, facetool_parameters
+            generation_parameters, esrgan_parameters, facetool_parameters, user_id
         ):
             try:
                 # truncate long init_mask/init_img base64 if needed
@@ -637,12 +644,13 @@ class InvokeAIWebServer:
                     )
 
                 print(
-                    f">> Image generation requested: {printable_parameters}\nESRGAN parameters: {esrgan_parameters}\nFacetool parameters: {facetool_parameters}"
+                    f">> Image generation requested: {printable_parameters}\nESRGAN parameters: {esrgan_parameters}\nFacetool parameters: {facetool_parameters}\nUser ID: {user_id}"
                 )
                 self.generate_images(
                     generation_parameters,
                     esrgan_parameters,
                     facetool_parameters,
+                    user_id,
                 )
             except Exception as e:
                 self.socketio.emit("error", {"message": (str(e))})
@@ -813,7 +821,7 @@ class InvokeAIWebServer:
         }
 
     def generate_images(
-        self, generation_parameters, esrgan_parameters, facetool_parameters
+        self, generation_parameters, esrgan_parameters, facetool_parameters, user_id
     ):
         try:
             self.canceled.clear()
@@ -1145,12 +1153,12 @@ class InvokeAIWebServer:
 
                 (width, height) = image.size
 
-                generated_image_outdir = (
+                generated_image_outdir = os.path.join((
                     self.result_path
                     if generation_parameters["generation_mode"]
                     in ["txt2img", "img2img"]
                     else self.temp_image_path
-                )
+                ), str(user_id))
 
                 path = self.save_result_image(
                     image,
@@ -1161,7 +1169,7 @@ class InvokeAIWebServer:
                 )
 
                 thumbnail_path = save_thumbnail(
-                    image, os.path.basename(path), self.thumbnail_image_path
+                    image, os.path.basename(path), os.path.join(self.thumbnail_image_path, str(user_id))
                 )
 
                 print(f'>> Image generated: "{path}"')
@@ -1186,8 +1194,8 @@ class InvokeAIWebServer:
                 self.socketio.emit(
                     "generationResult",
                     {
-                        "url": self.get_url_from_image_path(path),
-                        "thumbnail": self.get_url_from_image_path(thumbnail_path),
+                        "url": self.get_url_from_image_path(path, user_id),
+                        "thumbnail": self.get_url_from_image_path(thumbnail_path, user_id),
                         "mtime": os.path.getmtime(path),
                         "metadata": metadata,
                         "dreamPrompt": command,
@@ -1499,21 +1507,21 @@ class InvokeAIWebServer:
             traceback.print_exc()
             print("\n")
 
-    def get_url_from_image_path(self, path):
+    def get_url_from_image_path(self, path, user_id=''):
         """Given an absolute file path to an image, returns the URL that the client can use to load the image"""
         try:
             if "init-images" in path:
-                return os.path.join(self.init_image_url, os.path.basename(path))
+                return os.path.join(self.init_image_url, str(user_id), os.path.basename(path))
             elif "mask-images" in path:
-                return os.path.join(self.mask_image_url, os.path.basename(path))
+                return os.path.join(self.mask_image_url, str(user_id), os.path.basename(path))
             elif "intermediates" in path:
-                return os.path.join(self.intermediate_url, os.path.basename(path))
+                return os.path.join(self.intermediate_url, str(user_id), os.path.basename(path))
             elif "temp-images" in path:
-                return os.path.join(self.temp_image_url, os.path.basename(path))
+                return os.path.join(self.temp_image_url, str(user_id), os.path.basename(path))
             elif "thumbnails" in path:
-                return os.path.join(self.thumbnail_image_url, os.path.basename(path))
+                return os.path.join(self.thumbnail_image_url, str(user_id), os.path.basename(path))
             else:
-                return os.path.join(self.result_url, os.path.basename(path))
+                return os.path.join(self.result_url, str(user_id), os.path.basename(path))
         except Exception as e:
             self.socketio.emit("error", {"message": (str(e))})
             print("\n")
@@ -1716,9 +1724,13 @@ def save_thumbnail(
 ) -> str:
     base_filename = os.path.splitext(filename)[0]
     thumbnail_path = os.path.join(path, base_filename + ".webp")
+    print("Saved thumbnail to " + thumbnail_path)
 
     if os.path.exists(thumbnail_path):
         return thumbnail_path
+
+    print("creating dir " + os.path.dirname(thumbnail_path))
+    os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
 
     thumbnail_width = size
     thumbnail_height = round(size * (image.height / image.width))
