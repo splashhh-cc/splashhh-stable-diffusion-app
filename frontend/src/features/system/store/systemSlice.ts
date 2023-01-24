@@ -3,6 +3,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { ExpandedIndex, UseToastOptions } from '@chakra-ui/react';
 import * as InvokeAI from 'app/invokeai';
 import i18n from 'i18n';
+import { v4 as uuidv4 } from 'uuid';
 
 export type LogLevel = 'info' | 'warning' | 'error';
 
@@ -50,6 +51,8 @@ export interface SystemState
   searchFolder: string | null;
   foundModels: InvokeAI.FoundModel[] | null;
   openModel: string | null;
+  user_id: string;
+  challenge: string;
 }
 
 const initialSystemState: SystemState = {
@@ -88,6 +91,8 @@ const initialSystemState: SystemState = {
   searchFolder: null,
   foundModels: null,
   openModel: null,
+  user_id: uuidv4(),
+  challenge: "",
 };
 
 export const systemSlice = createSlice({
@@ -243,6 +248,12 @@ export const systemSlice = createSlice({
     setOpenModel: (state, action: PayloadAction<string | null>) => {
       state.openModel = action.payload;
     },
+    setUserId:  (state, action: PayloadAction<string>) => {
+      state.user_id = action.payload;
+    },
+    setChallenge: (state, action: PayloadAction<string>) => {
+      state.challenge = action.payload;
+    },
   },
 });
 
@@ -274,6 +285,8 @@ export const {
   setSearchFolder,
   setFoundModels,
   setOpenModel,
+  setUserId,
+  setChallenge,
 } = systemSlice.actions;
 
 export default systemSlice.reducer;
