@@ -121,6 +121,7 @@ class InvokeAIWebServer:
             else:
                 return send_from_directory(self.app.static_folder, "index.html")
 
+        # Challenge
         @self.app.route("/get_challenge", methods=["get"])
         def get_challenge():
             response = {
@@ -210,7 +211,7 @@ class InvokeAIWebServer:
                 return make_response(response, 200)
 
             except Exception as e:
-                self.socketio.emit("error", {"message": (str(e))})
+                self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
                 print("\n")
 
                 traceback.print_exc()
@@ -301,7 +302,7 @@ class InvokeAIWebServer:
             config = self.get_system_config()
             config["model_list"] = self.generate.model_manager.list_models()
             config["infill_methods"] = infill_methods()
-            socketio.emit("systemConfig", config)
+            socketio.emit("systemConfig", config, to=request.sid)
 
         @socketio.on('searchForModels')
         def handle_search_models(search_folder: str):
@@ -310,15 +311,17 @@ class InvokeAIWebServer:
                     socketio.emit(
                     "foundModels",
                     {'search_folder': None, 'found_models': None},
+                    to=request.sid
                 )
                 else:
                     search_folder, found_models = self.generate.model_manager.search_models(search_folder)
                     socketio.emit(
                         "foundModels",
                         {'search_folder': search_folder, 'found_models': found_models},
+                        to = request.sid,
                     )
             except Exception as e:
-                self.socketio.emit("error", {"message": (str(e))})
+                self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
                 print("\n")
 
                 traceback.print_exc()
@@ -348,10 +351,11 @@ class InvokeAIWebServer:
                     "newModelAdded",
                     {"new_model_name": model_name,
                      "model_list": new_model_list, 'update': update},
+                    to = request.sid,
                 )
                 print(f">> New Model Added: {model_name}")
             except Exception as e:
-                self.socketio.emit("error", {"message": (str(e))})
+                self.socketio.emit("error", {"message": (str(e))} ,to=request.sid)
                 print("\n")
 
                 traceback.print_exc()
@@ -368,10 +372,11 @@ class InvokeAIWebServer:
                     "modelDeleted",
                     {"deleted_model_name": model_name,
                      "model_list": updated_model_list},
+                    to = request.sid,
                 )
                 print(f">> Model Deleted: {model_name}")
             except Exception as e:
-                self.socketio.emit("error", {"message": (str(e))})
+                self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
                 print("\n")
 
                 traceback.print_exc()
@@ -387,14 +392,16 @@ class InvokeAIWebServer:
                     socketio.emit(
                         "modelChangeFailed",
                         {"model_name": model_name, "model_list": model_list},
+                        to = request.sid,
                     )
                 else:
                     socketio.emit(
                         "modelChanged",
                         {"model_name": model_name, "model_list": model_list},
+                        to = request.sid,
                     )
             except Exception as e:
-                self.socketio.emit("error", {"message": (str(e))})
+                self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
                 print("\n")
 
                 traceback.print_exc()
@@ -413,12 +420,12 @@ class InvokeAIWebServer:
                         )
                         os.remove(thumbnail_path)
                     except Exception as e:
-                        socketio.emit("error", {"message": f"Unable to delete {f}: {str(e)}"})
+                        socketio.emit("error", {"message": f"Unable to delete {f}: {str(e)}"}, to=request.sid)
                         pass
 
-                socketio.emit("tempFolderEmptied")
+                socketio.emit("tempFolderEmptied", to=request.sid)
             except Exception as e:
-                self.socketio.emit("error", {"message": (str(e))})
+                self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
                 print("\n")
 
                 traceback.print_exc()
@@ -459,10 +466,11 @@ class InvokeAIWebServer:
                 socketio.emit(
                     "galleryImages",
                     {"images": image_array, "category": "result"},
+                    to=request.sid,
                 )
 
             except Exception as e:
-                self.socketio.emit("error", {"message": (str(e))})
+                self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
                 print("\n")
 
                 traceback.print_exc()
@@ -522,15 +530,16 @@ class InvokeAIWebServer:
                             }
                         )
                     except Exception as e:
-                        socketio.emit("error", {"message": f"Unable to load {path}: {str(e)}"})
+                        socketio.emit("error", {"message": f"Unable to load {path}: {str(e)}"}, to=request.sid)
                         pass
 
                 socketio.emit(
                     "galleryImages",
                     {"images": image_array, "category": category},
+                    to=request.sid,
                 )
             except Exception as e:
-                self.socketio.emit("error", {"message": (str(e))})
+                self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
                 print("\n")
 
                 traceback.print_exc()
@@ -595,7 +604,7 @@ class InvokeAIWebServer:
                         )
                     except Exception as e:
                         print(f">> Unable to load {path}")
-                        socketio.emit("error", {"message": f"Unable to load {path}: {str(e)}"})
+                        socketio.emit("error", {"message": f"Unable to load {path}: {str(e)}"}, to=request.sid)
                         pass
 
                 socketio.emit(
@@ -605,9 +614,10 @@ class InvokeAIWebServer:
                         "areMoreImagesAvailable": areMoreImagesAvailable,
                         "category": category,
                     },
+                    to=request.sid,
                 )
             except Exception as e:
-                self.socketio.emit("error", {"message": (str(e))})
+                self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
                 print("\n")
 
                 traceback.print_exc()
@@ -644,7 +654,7 @@ class InvokeAIWebServer:
                     user_id,
                 )
             except Exception as e:
-                self.socketio.emit("error", {"message": (str(e))})
+                self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
                 print("\n")
 
                 traceback.print_exc()
@@ -659,7 +669,7 @@ class InvokeAIWebServer:
 
                 progress = Progress()
 
-                socketio.emit("progressUpdate", progress.to_formatted_dict())
+                socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                 eventlet.sleep(0)
 
                 original_image_path = self.get_image_path_from_url(
@@ -681,7 +691,7 @@ class InvokeAIWebServer:
                 elif postprocessing_parameters["type"] == "codeformer":
                     progress.set_current_status("common:statusRestoringFacesCodeFormer")
 
-                socketio.emit("progressUpdate", progress.to_formatted_dict())
+                socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                 eventlet.sleep(0)
 
                 if postprocessing_parameters["type"] == "esrgan":
@@ -713,7 +723,7 @@ class InvokeAIWebServer:
                     )
 
                 progress.set_current_status("common:statusSavingImage")
-                socketio.emit("progressUpdate", progress.to_formatted_dict())
+                socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                 eventlet.sleep(0)
 
                 postprocessing_parameters["seed"] = seed
@@ -743,7 +753,7 @@ class InvokeAIWebServer:
                 )
 
                 progress.mark_complete()
-                socketio.emit("progressUpdate", progress.to_formatted_dict())
+                socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                 eventlet.sleep(0)
 
                 socketio.emit(
@@ -757,9 +767,10 @@ class InvokeAIWebServer:
                         "width": width,
                         "height": height,
                     },
+                    to=request.sid,
                 )
             except Exception as e:
-                self.socketio.emit("error", {"message": (str(e))})
+                self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
                 print("\n")
 
                 traceback.print_exc()
@@ -786,9 +797,10 @@ class InvokeAIWebServer:
                 socketio.emit(
                     "imageDeleted",
                     {"url": url, "uuid": uuid, "category": category},
+                    to=request.sid,
                 )
             except Exception as e:
-                self.socketio.emit("error", {"message": (str(e))})
+                self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
                 print("\n")
 
                 traceback.print_exc()
@@ -829,7 +841,7 @@ class InvokeAIWebServer:
 
             progress = Progress(generation_parameters=generation_parameters)
 
-            self.socketio.emit("progressUpdate", progress.to_formatted_dict())
+            self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
             eventlet.sleep(0)
 
             """
@@ -988,6 +1000,7 @@ class InvokeAIWebServer:
                             "generationMode": generation_parameters["generation_mode"],
                             "boundingBox": original_bounding_box,
                         },
+                        to=request.sid,
                     )
 
 
@@ -1009,9 +1022,10 @@ class InvokeAIWebServer:
                             "generationMode": generation_parameters["generation_mode"],
                             "boundingBox": original_bounding_box,
                         },
+                        to=request.sid,
                     )
 
-                self.socketio.emit("progressUpdate", progress.to_formatted_dict())
+                self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                 eventlet.sleep(0)
 
             def image_done(image, seed, first_seed, attention_maps_image=None):
@@ -1039,7 +1053,7 @@ class InvokeAIWebServer:
 
                 progress.set_current_status("common:statusGenerationComplete")
 
-                self.socketio.emit("progressUpdate", progress.to_formatted_dict())
+                self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                 eventlet.sleep(0)
 
                 all_parameters = generation_parameters
@@ -1066,7 +1080,7 @@ class InvokeAIWebServer:
                 if esrgan_parameters:
                     progress.set_current_status("common:statusUpscaling")
                     progress.set_current_status_has_steps(False)
-                    self.socketio.emit("progressUpdate", progress.to_formatted_dict())
+                    self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                     eventlet.sleep(0)
 
                     image = self.esrgan.process(
@@ -1092,7 +1106,7 @@ class InvokeAIWebServer:
                         progress.set_current_status("common:statusRestoringFacesCodeFormer")
 
                     progress.set_current_status_has_steps(False)
-                    self.socketio.emit("progressUpdate", progress.to_formatted_dict())
+                    self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                     eventlet.sleep(0)
 
                     if facetool_parameters["type"] == "gfpgan":
@@ -1122,7 +1136,7 @@ class InvokeAIWebServer:
                     all_parameters["facetool_type"] = facetool_parameters["type"]
 
                 progress.set_current_status("common:statusSavingImage")
-                self.socketio.emit("progressUpdate", progress.to_formatted_dict())
+                self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                 eventlet.sleep(0)
 
                 # restore the stashed URLS and discard the paths, we are about to send the result to client
@@ -1173,7 +1187,7 @@ class InvokeAIWebServer:
                 else:
                     progress.mark_complete()
 
-                self.socketio.emit("progressUpdate", progress.to_formatted_dict())
+                self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                 eventlet.sleep(0)
 
                 parsed_prompt, _ = get_prompt_structure(generation_parameters["prompt"])
@@ -1197,6 +1211,7 @@ class InvokeAIWebServer:
                         "attentionMaps": attention_maps_image_base64_url,
                         "tokens": tokens,
                     },
+                    to=request.sid
                 )
                 eventlet.sleep(0)
 
@@ -1218,18 +1233,18 @@ class InvokeAIWebServer:
         except KeyboardInterrupt:
             # Clear the CUDA cache on an exception
             self.empty_cuda_cache()
-            self.socketio.emit("processingCanceled")
+            self.socketio.emit("processingCanceled", to=request.sid)
             raise
         except CanceledException:
             # Clear the CUDA cache on an exception
             self.empty_cuda_cache()
-            self.socketio.emit("processingCanceled")
+            self.socketio.emit("processingCanceled", to=request.sid)
             pass
         except Exception as e:
             # Clear the CUDA cache on an exception
             self.empty_cuda_cache()
             print(e)
-            self.socketio.emit("error", {"message": (str(e))})
+            self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
             print("\n")
 
             traceback.print_exc()
@@ -1339,7 +1354,7 @@ class InvokeAIWebServer:
             return metadata
 
         except Exception as e:
-            self.socketio.emit("error", {"message": (str(e))})
+            self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
             print("\n")
 
             traceback.print_exc()
@@ -1393,7 +1408,7 @@ class InvokeAIWebServer:
             return current_metadata
 
         except Exception as e:
-            self.socketio.emit("error", {"message": (str(e))})
+            self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
             print("\n")
 
             traceback.print_exc()
@@ -1441,7 +1456,7 @@ class InvokeAIWebServer:
             return os.path.abspath(path)
 
         except Exception as e:
-            self.socketio.emit("error", {"message": (str(e))})
+            self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
             print("\n")
 
             traceback.print_exc()
@@ -1454,7 +1469,7 @@ class InvokeAIWebServer:
             name = f"{split[0]}.{uuid}{split[1]}"
             return name
         except Exception as e:
-            self.socketio.emit("error", {"message": (str(e))})
+            self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
             print("\n")
 
             traceback.print_exc()
@@ -1473,7 +1488,7 @@ class InvokeAIWebServer:
                 file.writelines(message)
 
         except Exception as e:
-            self.socketio.emit("error", {"message": (str(e))})
+            self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
             print("\n")
 
             traceback.print_exc()
@@ -1507,7 +1522,7 @@ class InvokeAIWebServer:
                     os.path.join(self.result_path, os.path.basename(url))
                 )
         except Exception as e:
-            self.socketio.emit("error", {"message": (str(e))})
+            self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
             print("\n")
 
             traceback.print_exc()
@@ -1529,7 +1544,7 @@ class InvokeAIWebServer:
             else:
                 return os.path.join(self.result_url, str(user_id), os.path.basename(path))
         except Exception as e:
-            self.socketio.emit("error", {"message": (str(e))})
+            self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
             print("\n")
 
             traceback.print_exc()
@@ -1552,7 +1567,7 @@ class InvokeAIWebServer:
 
             return file_path
         except Exception as e:
-            self.socketio.emit("error", {"message": (str(e))})
+            self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
             print("\n")
 
             traceback.print_exc()
