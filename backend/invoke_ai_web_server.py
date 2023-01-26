@@ -442,10 +442,10 @@ class InvokeAIWebServer:
                 print("\n")
 
         @socketio.on("requestSaveStagingAreaImageToGallery")
-        def save_temp_image_to_gallery(url):
+        def save_temp_image_to_gallery(url, user_id : str =''):
             try:
-                image_path = self.get_image_path_from_url(url)
-                new_path = os.path.join(self.result_path, os.path.basename(image_path))
+                image_path = self.get_image_path_from_url(url, user_id)
+                new_path = os.path.join(self.result_path, user_id, os.path.basename(image_path))
                 shutil.copy2(image_path, new_path)
 
                 if os.path.splitext(new_path)[1] == ".png":
@@ -458,13 +458,13 @@ class InvokeAIWebServer:
                 (width, height) = pil_image.size
 
                 thumbnail_path = save_thumbnail(
-                    pil_image, os.path.basename(new_path), self.thumbnail_image_path
+                    pil_image, os.path.basename(new_path), os.path.join(self.thumbnail_image_path, str(user_id))
                 )
 
                 image_array = [
                     {
-                        "url": self.get_url_from_image_path(new_path),
-                        "thumbnail": self.get_url_from_image_path(thumbnail_path),
+                        "url": self.get_url_from_image_path(new_path, user_id),
+                        "thumbnail": self.get_url_from_image_path(thumbnail_path, user_id),
                         "mtime": os.path.getmtime(new_path),
                         "metadata": metadata,
                         "width": width,
