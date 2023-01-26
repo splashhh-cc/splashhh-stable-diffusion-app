@@ -477,11 +477,13 @@ class InvokeAIWebServer:
                 print("\n")
 
         @socketio.on("requestLatestImages")
-        def handle_request_latest_images(category, latest_mtime):
+        def handle_request_latest_images(category, latest_mtime, user_id: str = ''):
             try:
                 base_path = (
                     self.result_path if category == "result" else self.init_image_path
                 )
+
+                base_path = os.path.join(base_path, user_id)
 
                 paths = []
 
@@ -512,14 +514,15 @@ class InvokeAIWebServer:
                         (width, height) = pil_image.size
 
                         thumbnail_path = save_thumbnail(
-                            pil_image, os.path.basename(path), self.thumbnail_image_path
+                            pil_image, os.path.basename(path), os.path.join(self.thumbnail_image_path, user_id)
                         )
 
                         image_array.append(
                             {
-                                "url": self.get_url_from_image_path(path),
+                                "url": self.get_url_from_image_path(path, user_id),
                                 "thumbnail": self.get_url_from_image_path(
-                                    thumbnail_path
+                                    thumbnail_path,
+                                    user_id,
                                 ),
                                 "mtime": os.path.getmtime(path),
                                 "metadata": metadata.get("sd-metadata"),
@@ -546,13 +549,15 @@ class InvokeAIWebServer:
                 print("\n")
 
         @socketio.on("requestImages")
-        def handle_request_images(category, earliest_mtime=None):
+        def handle_request_images(category, earliest_mtime=None, user_id: str = ''):
             try:
                 page_size = 10
 
                 base_path = (
                     self.result_path if category == "result" else self.init_image_path
                 )
+
+                base_path = os.path.join(base_path, user_id)
 
                 paths = []
                 for ext in ("*.png", "*.jpg", "*.jpeg"):
@@ -585,14 +590,15 @@ class InvokeAIWebServer:
                         (width, height) = pil_image.size
 
                         thumbnail_path = save_thumbnail(
-                            pil_image, os.path.basename(path), self.thumbnail_image_path
+                            pil_image, os.path.basename(path), os.path.join(self.thumbnail_image_path, user_id)
                         )
 
                         image_array.append(
                             {
-                                "url": self.get_url_from_image_path(path),
+                                "url": self.get_url_from_image_path(path, user_id),
                                 "thumbnail": self.get_url_from_image_path(
-                                    thumbnail_path
+                                    thumbnail_path,
+                                    user_id,
                                 ),
                                 "mtime": os.path.getmtime(path),
                                 "metadata": metadata.get("sd-metadata"),
@@ -625,7 +631,7 @@ class InvokeAIWebServer:
 
         @socketio.on("generateImage")
         def handle_generate_image_event(
-            generation_parameters, esrgan_parameters, facetool_parameters, user_id
+            generation_parameters, esrgan_parameters, facetool_parameters, user_id: str = ''
         ):
             try:
                 # truncate long init_mask/init_img base64 if needed
@@ -1528,7 +1534,7 @@ class InvokeAIWebServer:
             traceback.print_exc()
             print("\n")
 
-    def get_url_from_image_path(self, path, user_id=''):
+    def get_url_from_image_path(self, path, user_id :str =''):
         """Given an absolute file path to an image, returns the URL that the client can use to load the image"""
         try:
             if "init-images" in path:
@@ -1745,7 +1751,6 @@ def save_thumbnail(
 ) -> str:
     base_filename = os.path.splitext(filename)[0]
     thumbnail_path = os.path.join(path, base_filename + ".webp")
-    print("Saved thumbnail to " + thumbnail_path)
 
     if os.path.exists(thumbnail_path):
         return thumbnail_path

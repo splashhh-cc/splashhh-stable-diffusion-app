@@ -153,12 +153,14 @@ const makeSocketIOEmitters = (
     emitRequestImages: (category: GalleryCategory) => {
       const gallery: GalleryState = getState().gallery;
       const { earliest_mtime } = gallery.categories[category];
-      socketio.emit('requestImages', category, earliest_mtime);
+      const { user_id } = getState().system;
+      socketio.emit('requestImages', category, earliest_mtime, user_id);
     },
     emitRequestNewImages: (category: GalleryCategory) => {
       const gallery: GalleryState = getState().gallery;
       const { latest_mtime } = gallery.categories[category];
-      socketio.emit('requestLatestImages', category, latest_mtime);
+      const { user_id } = getState().system;
+      socketio.emit('requestLatestImages', category, latest_mtime, user_id);
     },
     emitCancelProcessing: () => {
       socketio.emit('cancel');
