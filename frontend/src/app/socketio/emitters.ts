@@ -142,7 +142,8 @@ const makeSocketIOEmitters = (
     emitDeleteImage: (imageToDelete: InvokeAI.Image) => {
       const { url, uuid, category, thumbnail } = imageToDelete;
       dispatch(removeImage(imageToDelete));
-      socketio.emit('deleteImage', url, thumbnail, uuid, category);
+      const { user_id } = getState().system;
+      socketio.emit('deleteImage', url, thumbnail, uuid, category, user_id);
     },
     emitRequestImages: (category: GalleryCategory) => {
       const gallery: GalleryState = getState().gallery;

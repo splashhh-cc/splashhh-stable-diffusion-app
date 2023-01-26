@@ -798,13 +798,13 @@ class InvokeAIWebServer:
 
         # TODO: I think this needs a safety mechanism.
         @socketio.on("deleteImage")
-        def handle_delete_image(url, thumbnail, uuid, category):
+        def handle_delete_image(url, thumbnail, uuid, category, user_id: str = ''):
             try:
                 print(f'>> Delete requested "{url}"')
                 from send2trash import send2trash
 
-                path = self.get_image_path_from_url(url)
-                thumbnail_path = self.get_image_path_from_url(thumbnail)
+                path = self.get_image_path_from_url(url, user_id)
+                thumbnail_path = self.get_image_path_from_url(thumbnail, user_id)
 
                 send2trash(path)
                 send2trash(thumbnail_path)
@@ -1494,32 +1494,32 @@ class InvokeAIWebServer:
             traceback.print_exc()
             print("\n")
 
-    def get_image_path_from_url(self, url):
+    def get_image_path_from_url(self, url, user_id :str = ''):
         """Given a url to an image used by the client, returns the absolute file path to that image"""
         try:
             if "init-images" in url:
                 return os.path.abspath(
-                    os.path.join(self.init_image_path, os.path.basename(url))
+                    os.path.join(self.init_image_path, user_id, os.path.basename(url))
                 )
             elif "mask-images" in url:
                 return os.path.abspath(
-                    os.path.join(self.mask_image_path, os.path.basename(url))
+                    os.path.join(self.mask_image_path, user_id, os.path.basename(url))
                 )
             elif "intermediates" in url:
                 return os.path.abspath(
-                    os.path.join(self.intermediate_path, os.path.basename(url))
+                    os.path.join(self.intermediate_path, user_id, os.path.basename(url))
                 )
             elif "temp-images" in url:
                 return os.path.abspath(
-                    os.path.join(self.temp_image_path, os.path.basename(url))
+                    os.path.join(self.temp_image_path, user_id, os.path.basename(url))
                 )
             elif "thumbnails" in url:
                 return os.path.abspath(
-                    os.path.join(self.thumbnail_image_path, os.path.basename(url))
+                    os.path.join(self.thumbnail_image_path, user_id, os.path.basename(url))
                 )
             else:
                 return os.path.abspath(
-                    os.path.join(self.result_path, os.path.basename(url))
+                    os.path.join(self.result_path, user_id, os.path.basename(url))
                 )
         except Exception as e:
             self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
