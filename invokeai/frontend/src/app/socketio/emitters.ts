@@ -63,7 +63,7 @@ const makeSocketIOEmitters = (
         generationParameters,
         esrganParameters,
         facetoolParameters,
-        systemState.user_id,
+        systemState.user_id
       );
 
       // we need to truncate the init_mask base64 else it takes up the whole log
@@ -100,10 +100,11 @@ const makeSocketIOEmitters = (
       const esrganParameters = {
         upscale: [upscalingLevel, upscalingStrength],
       };
+      const { user_id } = getState().system;
       socketio.emit('runPostprocessing', imageToProcess, {
         type: 'esrgan',
         ...esrganParameters,
-      });
+      }, user_id);
       dispatch(
         addLogEntry({
           timestamp: dateFormat(new Date(), 'isoDateTime'),
@@ -116,11 +117,10 @@ const makeSocketIOEmitters = (
     },
     emitRunFacetool: (imageToProcess: InvokeAI.Image) => {
       dispatch(setIsProcessing(true));
-
       const {
         postprocessing: { facetoolType, facetoolStrength, codeformerFidelity },
       } = getState();
-
+      const { user_id } = getState().system;
       const facetoolParameters: Record<string, unknown> = {
         facetool_strength: facetoolStrength,
       };
@@ -132,7 +132,7 @@ const makeSocketIOEmitters = (
       socketio.emit('runPostprocessing', imageToProcess, {
         type: facetoolType,
         ...facetoolParameters,
-      });
+      }, user_id);
       dispatch(
         addLogEntry({
           timestamp: dateFormat(new Date(), 'isoDateTime'),
