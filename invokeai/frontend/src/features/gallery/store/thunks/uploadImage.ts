@@ -29,6 +29,7 @@ export const uploadImage =
       'data',
       JSON.stringify({
         kind: 'init',
+        user_id: state.system.user_id,
       })
     );
 
