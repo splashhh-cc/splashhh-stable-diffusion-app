@@ -96,10 +96,11 @@ const makeSocketIOEmitters = (
       const esrganParameters = {
         upscale: [upscalingLevel, upscalingStrength],
       };
+      const { user_id } = getState().system;
       socketio.emit('runPostprocessing', imageToProcess, {
         type: 'esrgan',
         ...esrganParameters,
-      });
+      }, user_id);
       dispatch(
         addLogEntry({
           timestamp: dateFormat(new Date(), 'isoDateTime'),
@@ -113,6 +114,7 @@ const makeSocketIOEmitters = (
     emitRunFacetool: (imageToProcess: InvokeAI.Image) => {
       dispatch(setIsProcessing(true));
       const options: OptionsState = getState().options;
+      const { user_id } = getState().system;
       const { facetoolType, facetoolStrength, codeformerFidelity } = options;
 
       const facetoolParameters: Record<string, unknown> = {
@@ -126,7 +128,7 @@ const makeSocketIOEmitters = (
       socketio.emit('runPostprocessing', imageToProcess, {
         type: facetoolType,
         ...facetoolParameters,
-      });
+      }, user_id);
       dispatch(
         addLogEntry({
           timestamp: dateFormat(new Date(), 'isoDateTime'),

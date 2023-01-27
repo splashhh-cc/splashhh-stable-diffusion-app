@@ -676,7 +676,7 @@ class InvokeAIWebServer:
                 print("\n")
 
         @socketio.on("runPostprocessing")
-        def handle_run_postprocessing(original_image, postprocessing_parameters):
+        def handle_run_postprocessing(original_image, postprocessing_parameters, user_id: str = ''):
             try:
                 print(
                     f'>> Postprocessing requested for "{original_image["url"]}": {postprocessing_parameters}'
@@ -688,7 +688,8 @@ class InvokeAIWebServer:
                 eventlet.sleep(0)
 
                 original_image_path = self.get_image_path_from_url(
-                    original_image["url"]
+                    original_image["url"],
+                    user_id,
                 )
 
                 image = Image.open(original_image_path)
@@ -755,12 +756,12 @@ class InvokeAIWebServer:
                     image,
                     command,
                     metadata,
-                    self.result_path,
+                    os.path.join(self.result_path, user_id),
                     postprocessing=postprocessing_parameters["type"],
                 )
 
                 thumbnail_path = save_thumbnail(
-                    image, os.path.basename(path), self.thumbnail_image_path
+                    image, os.path.basename(path), os.path.join(self.thumbnail_image_path, user_id)
                 )
 
                 self.write_log_message(
@@ -774,8 +775,8 @@ class InvokeAIWebServer:
                 socketio.emit(
                     "postprocessingResult",
                     {
-                        "url": self.get_url_from_image_path(path),
-                        "thumbnail": self.get_url_from_image_path(thumbnail_path),
+                        "url": self.get_url_from_image_path(path, user_id),
+                        "thumbnail": self.get_url_from_image_path(thumbnail_path, user_id),
                         "mtime": os.path.getmtime(path),
                         "metadata": metadata,
                         "dreamPrompt": command,
