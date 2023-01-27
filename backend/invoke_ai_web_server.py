@@ -451,6 +451,9 @@ class InvokeAIWebServer:
         @socketio.on("requestSaveStagingAreaImageToGallery")
         def save_temp_image_to_gallery(url, user_id: str =''):
             try:
+                if user_id != secure_filename(user_id):
+                    raise ValueError("Invalid user_id")
+
                 image_path = self.get_image_path_from_url(url, user_id)
                 new_path = os.path.join(self.result_path, user_id, os.path.basename(image_path))
                 shutil.copy2(image_path, new_path)
@@ -496,6 +499,10 @@ class InvokeAIWebServer:
         @socketio.on("requestLatestImages")
         def handle_request_latest_images(category, latest_mtime, user_id: str = ''):
             try:
+
+                if user_id != secure_filename(user_id):
+                    raise ValueError("Invalid user_id")
+
                 base_path = (
                     self.result_path if category == "result" else self.init_image_path
                 )
@@ -568,6 +575,9 @@ class InvokeAIWebServer:
         @socketio.on("requestImages")
         def handle_request_images(category, earliest_mtime=None, user_id: str = ''):
             try:
+                if user_id != secure_filename(user_id):
+                    raise ValueError("Invalid user_id")
+
                 page_size = 10
 
                 base_path = (
@@ -651,6 +661,9 @@ class InvokeAIWebServer:
             generation_parameters, esrgan_parameters, facetool_parameters, user_id: str = ''
         ):
             try:
+                if user_id != secure_filename(user_id):
+                    raise ValueError("Invalid user_id")
+
                 # truncate long init_mask/init_img base64 if needed
                 printable_parameters = {
                     **generation_parameters,
@@ -685,6 +698,9 @@ class InvokeAIWebServer:
         @socketio.on("runPostprocessing")
         def handle_run_postprocessing(original_image, postprocessing_parameters, user_id: str = ''):
             try:
+                if user_id != secure_filename(user_id):
+                    raise ValueError("Invalid user_id")
+
                 print(
                     f'>> Postprocessing requested for "{original_image["url"]}": {postprocessing_parameters}'
                 )
@@ -808,6 +824,9 @@ class InvokeAIWebServer:
         @socketio.on("deleteImage")
         def handle_delete_image(url, thumbnail, uuid, category, user_id: str = ''):
             try:
+                if user_id != secure_filename(user_id):
+                    raise ValueError("Invalid user_id")
+
                 print(f'>> Delete requested "{url}"')
                 from send2trash import send2trash
 
@@ -850,6 +869,9 @@ class InvokeAIWebServer:
         self, generation_parameters, esrgan_parameters, facetool_parameters, user_id: str = ''
     ):
         try:
+            if user_id != secure_filename(user_id):
+                raise ValueError("Invalid user_id")
+
             self.canceled.clear()
 
             step_index = 1
@@ -965,8 +987,10 @@ class InvokeAIWebServer:
 
             elif generation_parameters["generation_mode"] == "img2img":
                 init_img_url = generation_parameters["init_img"]
-                init_img_path = self.get_image_path_from_url(init_img_url)
+                init_img_path = self.get_image_path_from_url(init_img_url, user_id)
+                print("----init_img_path:", init_img_path)
                 generation_parameters["init_img"] = Image.open(init_img_path).convert('RGB')
+                generation_parameters["user_id"] = user_id
 
             def image_progress(sample, step):
                 if self.canceled.is_set():
@@ -1351,7 +1375,7 @@ class InvokeAIWebServer:
                 rfc_dict["strength"] = parameters["strength"]
                 rfc_dict["fit"] = parameters["fit"]  # TODO: Noncompliant
                 rfc_dict["orig_hash"] = calculate_init_img_hash(
-                    self.get_image_path_from_url(parameters["init_img"])
+                    self.get_image_path_from_url(parameters["init_img"], parameters["user_id"])
                 )
                 rfc_dict["init_image_path"] = parameters[
                     "init_img"
