@@ -325,7 +325,7 @@ class InvokeAIWebServer:
                     socketio.emit(
                         "foundModels",
                         {'search_folder': search_folder, 'found_models': found_models},
-                        to = request.sid,
+                        to=request.sid,
                     )
             except Exception as e:
                 self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
@@ -358,11 +358,11 @@ class InvokeAIWebServer:
                     "newModelAdded",
                     {"new_model_name": model_name,
                      "model_list": new_model_list, 'update': update},
-                    to = request.sid,
+                    to=request.sid,
                 )
                 print(f">> New Model Added: {model_name}")
             except Exception as e:
-                self.socketio.emit("error", {"message": (str(e))} ,to=request.sid)
+                self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
                 print("\n")
 
                 traceback.print_exc()
@@ -379,7 +379,7 @@ class InvokeAIWebServer:
                     "modelDeleted",
                     {"deleted_model_name": model_name,
                      "model_list": updated_model_list},
-                    to = request.sid,
+                    to=request.sid,
                 )
                 print(f">> Model Deleted: {model_name}")
             except Exception as e:
@@ -399,13 +399,13 @@ class InvokeAIWebServer:
                     socketio.emit(
                         "modelChangeFailed",
                         {"model_name": model_name, "model_list": model_list},
-                        to = request.sid,
+                        to=request.sid,
                     )
                 else:
                     socketio.emit(
                         "modelChanged",
                         {"model_name": model_name, "model_list": model_list},
-                        to = request.sid,
+                        to=request.sid,
                     )
             except Exception as e:
                 self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
@@ -439,7 +439,7 @@ class InvokeAIWebServer:
                 print("\n")
 
         @socketio.on("requestSaveStagingAreaImageToGallery")
-        def save_temp_image_to_gallery(url, user_id : str =''):
+        def save_temp_image_to_gallery(url, user_id: str =''):
             try:
                 image_path = self.get_image_path_from_url(url, user_id)
                 new_path = os.path.join(self.result_path, user_id, os.path.basename(image_path))
@@ -455,7 +455,7 @@ class InvokeAIWebServer:
                 (width, height) = pil_image.size
 
                 thumbnail_path = save_thumbnail(
-                    pil_image, os.path.basename(new_path), os.path.join(self.thumbnail_image_path, str(user_id))
+                    pil_image, os.path.basename(new_path), os.path.join(self.thumbnail_image_path, user_id)
                 )
 
                 image_array = [
@@ -838,7 +838,7 @@ class InvokeAIWebServer:
         }
 
     def generate_images(
-        self, generation_parameters, esrgan_parameters, facetool_parameters, user_id
+        self, generation_parameters, esrgan_parameters, facetool_parameters, user_id: str = ''
     ):
         try:
             self.canceled.clear()
@@ -1177,7 +1177,7 @@ class InvokeAIWebServer:
                     if generation_parameters["generation_mode"]
                     in ["txt2img", "img2img"]
                     else self.temp_image_path
-                ), str(user_id))
+                ), user_id)
 
                 path = self.save_result_image(
                     image,
@@ -1188,7 +1188,7 @@ class InvokeAIWebServer:
                 )
 
                 thumbnail_path = save_thumbnail(
-                    image, os.path.basename(path), os.path.join(self.thumbnail_image_path, str(user_id))
+                    image, os.path.basename(path), os.path.join(self.thumbnail_image_path, user_id)
                 )
 
                 print(f'\n\n>> Image generated: "{path}"\n')
@@ -1542,21 +1542,21 @@ class InvokeAIWebServer:
             traceback.print_exc()
             print("\n")
 
-    def get_url_from_image_path(self, path, user_id :str =''):
+    def get_url_from_image_path(self, path, user_id: str =''):
         """Given an absolute file path to an image, returns the URL that the client can use to load the image"""
         try:
             if "init-images" in path:
-                return os.path.join(self.init_image_url, str(user_id), os.path.basename(path))
+                return os.path.join(self.init_image_url, user_id, os.path.basename(path))
             elif "mask-images" in path:
-                return os.path.join(self.mask_image_url, str(user_id), os.path.basename(path))
+                return os.path.join(self.mask_image_url, user_id, os.path.basename(path))
             elif "intermediates" in path:
-                return os.path.join(self.intermediate_url, str(user_id), os.path.basename(path))
+                return os.path.join(self.intermediate_url, user_id, os.path.basename(path))
             elif "temp-images" in path:
-                return os.path.join(self.temp_image_url, str(user_id), os.path.basename(path))
+                return os.path.join(self.temp_image_url, user_id, os.path.basename(path))
             elif "thumbnails" in path:
-                return os.path.join(self.thumbnail_image_url, str(user_id), os.path.basename(path))
+                return os.path.join(self.thumbnail_image_url, user_id, os.path.basename(path))
             else:
-                return os.path.join(self.result_url, str(user_id), os.path.basename(path))
+                return os.path.join(self.result_url, user_id, os.path.basename(path))
         except Exception as e:
             self.socketio.emit("error", {"message": (str(e))}, to=request.sid)
             print("\n")
