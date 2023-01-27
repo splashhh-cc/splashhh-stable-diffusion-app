@@ -132,7 +132,9 @@ class InvokeAIWebServer:
         @self.app.route("/upload", methods=["POST"])
         def upload():
             try:
+                print('post upload request')
                 data = json.loads(request.form["data"])
+                print(data)
                 filename = ""
                 # check if the post request has the file part
                 if "file" in request.files:
@@ -169,6 +171,10 @@ class InvokeAIWebServer:
                         400,
                     )
 
+                user_id: str = data["user_id"] if "user_id" in data else ''
+                if user_id != secure_filename(user_id):
+                    return make_response("Invalid user_id", 400)
+
                 secured_filename = secure_filename(filename)
 
                 uuid = uuid4().hex
@@ -177,12 +183,13 @@ class InvokeAIWebServer:
                 split = os.path.splitext(secured_filename)
                 name = f"{split[0]}.{truncated_uuid}{split[1]}"
 
-                file_path = os.path.join(path, name)
+                file_path = os.path.join(path, user_id, name)
 
                 if "dataURL" in data:
                     with open(file_path, "wb") as f:
                         f.write(file)
                 else:
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
                     file.save(file_path)
 
                 mtime = os.path.getmtime(file_path)
@@ -197,12 +204,12 @@ class InvokeAIWebServer:
                 (width, height) = pil_image.size
 
                 thumbnail_path = save_thumbnail(
-                    pil_image, os.path.basename(file_path), self.thumbnail_image_path
+                    pil_image, os.path.basename(file_path), os.path.join(self.thumbnail_image_path, user_id)
                 )
 
                 response = {
-                    "url": self.get_url_from_image_path(file_path),
-                    "thumbnail": self.get_url_from_image_path(thumbnail_path),
+                    "url": self.get_url_from_image_path(file_path, user_id),
+                    "thumbnail": self.get_url_from_image_path(thumbnail_path, user_id),
                     "mtime": mtime,
                     "width": width,
                     "height": height,
@@ -1750,7 +1757,6 @@ def save_thumbnail(
     if os.path.exists(thumbnail_path):
         return thumbnail_path
 
-    print("creating dir " + os.path.dirname(thumbnail_path))
     os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
 
     thumbnail_width = size

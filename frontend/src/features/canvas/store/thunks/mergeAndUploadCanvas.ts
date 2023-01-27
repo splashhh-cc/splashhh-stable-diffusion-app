@@ -93,6 +93,7 @@ export const mergeAndUploadCanvas =
         filename: 'merged_canvas.png',
         kind: shouldSaveToGallery ? 'result' : 'temp',
         cropVisible,
+        user_id: state.system.user_id,
       })
     );
 
