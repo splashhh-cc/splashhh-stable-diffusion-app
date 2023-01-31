@@ -1271,17 +1271,12 @@ class InvokeAIWebServer:
 
                 progress.set_current_iteration(progress.current_iteration + 1)
 
-            @copy_current_request_context
-            def prompt2image_wrap():
-                print(generation_parameters)
-                with self.semaphore:
-                    self.generate.prompt2image(
-                        **generation_parameters,
-                        step_callback=image_progress,
-                        image_callback=image_done
-                    )
-
-            self.socketio.start_background_task(target=prompt2image_wrap)
+            with self.semaphore:
+                self.generate.prompt2image(
+                    **generation_parameters,
+                    step_callback=image_progress,
+                    image_callback=image_done
+                )
 
         except KeyboardInterrupt:
             self.socketio.emit("processingCanceled", to=request.sid)
