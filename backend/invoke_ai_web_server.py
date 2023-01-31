@@ -58,7 +58,10 @@ class InvokeAIWebServer:
         self.canceled = Event()
         self.ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
-        self.semaphore = Semaphore(1)
+        s_value = 1
+        self.semaphore = Semaphore(s_value)
+        max_waiters = 10
+        self.max_waiters = s_value - max_waiters + 1 # The waiters are considered as negative values in self.semaphore.balance
 
     def allowed_file(self, filename: str) -> bool:
         return (
@@ -736,6 +739,8 @@ class InvokeAIWebServer:
                 socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                 eventlet.sleep(0)
 
+                if self.semaphore.balance <= self.max_waiters:
+                    raise Exception("Too many concurrent requests. Please try again later.")
                 with self.semaphore:
                     if postprocessing_parameters["type"] == "esrgan":
                         image = self.esrgan.process(
@@ -1270,6 +1275,9 @@ class InvokeAIWebServer:
                 eventlet.sleep(0)
 
                 progress.set_current_iteration(progress.current_iteration + 1)
+
+            if self.semaphore.balance <= self.max_waiters:
+                raise Exception("Too many concurrent requests. Please try again later.")
 
             with self.semaphore:
                 self.generate.prompt2image(
