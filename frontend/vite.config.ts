@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
           target: 'http://127.0.0.1:9090/get_challenge',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/get_challenge/, ''),
-        }
+        },
       },
     },
     build: {
