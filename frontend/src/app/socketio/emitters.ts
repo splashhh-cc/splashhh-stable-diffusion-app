@@ -14,12 +14,14 @@ import { OptionsState } from 'features/options/store/optionsSlice';
 import {
   addLogEntry,
   generationRequested,
-  modelChangeRequested,
+  modelChangeRequested, setChallenge,
   setIsProcessing,
 } from 'features/system/store/systemSlice';
 import { InvokeTabName } from 'features/tabs/tabMap';
 import * as InvokeAI from 'app/invokeai';
 import type { RootState } from 'app/store';
+import {getChallenge, solve_challenge} from "../../features/system/store/challenge";
+import {Challenge} from "app/invokeai";
 
 /**
  * Returns an object containing all functions which use `socketio.emit()`.
@@ -33,7 +35,7 @@ const makeSocketIOEmitters = (
   const { dispatch, getState } = store;
 
   return {
-    emitGenerateImage: (generationMode: InvokeTabName) => {
+    emitGenerateImage: async (generationMode: InvokeTabName) => {
       dispatch(setIsProcessing(true));
 
       const state: RootState = getState();
@@ -52,6 +54,11 @@ const makeSocketIOEmitters = (
           systemState,
         };
 
+      if (getState().system.challenge === null) {
+        const solved = await solve_challenge(await getChallenge());
+        dispatch(setChallenge(solved));
+      }
+
       dispatch(generationRequested());
 
       const { generationParameters, esrganParameters, facetoolParameters } =
@@ -63,7 +70,9 @@ const makeSocketIOEmitters = (
         esrganParameters,
         facetoolParameters,
         systemState.user_id,
+        getState().system.challenge
       );
+      dispatch(setChallenge(null));
 
       // we need to truncate the init_mask base64 else it takes up the whole log
       // TODO: handle maintaining masks for reproducibility in future

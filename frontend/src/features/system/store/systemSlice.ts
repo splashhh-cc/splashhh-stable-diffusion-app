@@ -4,6 +4,7 @@ import { ExpandedIndex, UseToastOptions } from '@chakra-ui/react';
 import * as InvokeAI from 'app/invokeai';
 import i18n from 'i18n';
 import { v4 as uuidv4 } from 'uuid';
+import {Challenge} from "app/invokeai";
 
 export type LogLevel = 'info' | 'warning' | 'error';
 
@@ -52,7 +53,7 @@ export interface SystemState
   foundModels: InvokeAI.FoundModel[] | null;
   openModel: string | null;
   user_id: string;
-  challenge: string;
+  challenge: Challenge | null
 }
 
 const initialSystemState: SystemState = {
@@ -92,7 +93,7 @@ const initialSystemState: SystemState = {
   foundModels: null,
   openModel: null,
   user_id: uuidv4(),
-  challenge: "",
+  challenge: null,
 };
 
 export const systemSlice = createSlice({
@@ -251,7 +252,7 @@ export const systemSlice = createSlice({
     setUserId:  (state, action: PayloadAction<string>) => {
       state.user_id = action.payload;
     },
-    setChallenge: (state, action: PayloadAction<string>) => {
+    setChallenge: (state, action: PayloadAction<Challenge | null>) => {
       state.challenge = action.payload;
     },
   },

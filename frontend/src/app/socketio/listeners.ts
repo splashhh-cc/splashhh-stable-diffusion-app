@@ -250,7 +250,7 @@ const makeSocketIOListeners = (
           addToast({
             title: `Server error: ${message}`,
             status: "warning",
-            duration: null,
+            duration: 5000,
             isClosable: true,
           })
         );

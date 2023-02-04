@@ -265,6 +265,10 @@ export declare type UploadOutpaintingMergeImagePayload = {
   name: string;
 };
 
-export declare type GetChallengeResponse = {
+export declare type Challenge = {
   challenge: string;
+  difficulty: number;
+  solution: string;
+  guess_count: number;
+  time_taken_ms: number;
 };
