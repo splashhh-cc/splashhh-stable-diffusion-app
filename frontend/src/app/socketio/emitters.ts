@@ -98,18 +98,27 @@ const makeSocketIOEmitters = (
         })
       );
     },
-    emitRunESRGAN: (imageToProcess: InvokeAI.Image) => {
+    emitRunESRGAN: async (imageToProcess: InvokeAI.Image) => {
       dispatch(setIsProcessing(true));
       const options: OptionsState = getState().options;
       const { upscalingLevel, upscalingStrength } = options;
       const esrganParameters = {
         upscale: [upscalingLevel, upscalingStrength],
       };
-      const { user_id } = getState().system;
-      socketio.emit('runPostprocessing', imageToProcess, {
-        type: 'esrgan',
-        ...esrganParameters,
-      }, user_id);
+      const {user_id} = getState().system;
+      if (getState().system.challenge === null) {
+        const solved = await solve_challenge(await getChallenge());
+        dispatch(setChallenge(solved));
+      }
+      socketio.emit('runPostprocessing',
+        imageToProcess, {
+          type: 'esrgan',
+          ...esrganParameters,
+        },
+        user_id,
+        getState().system.challenge
+      );
+      dispatch(setChallenge(null));
       dispatch(
         addLogEntry({
           timestamp: dateFormat(new Date(), 'isoDateTime'),
@@ -120,11 +129,16 @@ const makeSocketIOEmitters = (
         })
       );
     },
-    emitRunFacetool: (imageToProcess: InvokeAI.Image) => {
+    emitRunFacetool: async (imageToProcess: InvokeAI.Image) => {
       dispatch(setIsProcessing(true));
       const options: OptionsState = getState().options;
       const { user_id } = getState().system;
       const { facetoolType, facetoolStrength, codeformerFidelity } = options;
+
+      if (getState().system.challenge === null) {
+        const solved = await solve_challenge(await getChallenge());
+        dispatch(setChallenge(solved));
+      }
 
       const facetoolParameters: Record<string, unknown> = {
         facetool_strength: facetoolStrength,
@@ -137,7 +151,11 @@ const makeSocketIOEmitters = (
       socketio.emit('runPostprocessing', imageToProcess, {
         type: facetoolType,
         ...facetoolParameters,
-      }, user_id);
+      },
+        user_id,
+        getState().system.challenge
+      );
+      dispatch(setChallenge(null));
       dispatch(
         addLogEntry({
           timestamp: dateFormat(new Date(), 'isoDateTime'),

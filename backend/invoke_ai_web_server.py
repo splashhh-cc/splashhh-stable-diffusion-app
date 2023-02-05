@@ -677,7 +677,7 @@ class InvokeAIWebServer:
             generation_parameters, esrgan_parameters, facetool_parameters, user_id: str = '', solvedChallenge: dict = None
         ):
             try:
-                verify_challenge(session, solvedChallenge)
+                verify_challenge_solution(session, solvedChallenge)
 
                 if user_id != secure_filename(user_id):
                     raise ValueError("Invalid user_id")
@@ -714,8 +714,11 @@ class InvokeAIWebServer:
                 print("\n")
 
         @socketio.on("runPostprocessing")
-        def handle_run_postprocessing(original_image, postprocessing_parameters, user_id: str = ''):
+        def handle_run_postprocessing(original_image, postprocessing_parameters, user_id: str = '', solvedChallenge: dict = None
+        ):
             try:
+                verify_challenge_solution(session, solvedChallenge)
+
                 if user_id != secure_filename(user_id):
                     raise ValueError("Invalid user_id")
 
@@ -1840,20 +1843,20 @@ def verify_solution(challenge: str, solution: str, difficulty: int) -> bool:
 
     return normalized_res < normalized_difficulty
 
-def verify_challenge(session: dict, solved: dict) -> bool:
+def verify_challenge_solution(session: dict, solved: dict) -> bool:
     # print('session: ', session)
     # print('solved: ', solved)
 
     s_challenge: dict= session["challenge"]
+
+    if solved is None or solved.get("solution") is None:
+        raise ValueError("No solution for the challenge was provided.")
 
     if s_challenge.get("challenge") != solved.get("challenge"):
         raise ValueError("Session challenge string does not match to the provided challenge.")
 
     if s_challenge.get("difficulty") != solved.get("difficulty"):
         raise ValueError("Session challenge difficulty does not match to the provided difficulty.")
-
-    if solved.get("solution") is None:
-        raise ValueError("No solution for the challenge was provided.")
 
     if not verify_solution(solved.get("challenge"), solved.get("solution"), solved.get("difficulty")):
         raise ValueError("The provided solution for the challenge is not valid.")
