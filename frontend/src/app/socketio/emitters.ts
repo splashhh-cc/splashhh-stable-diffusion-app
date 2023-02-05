@@ -20,8 +20,8 @@ import {
 import { InvokeTabName } from 'features/tabs/tabMap';
 import * as InvokeAI from 'app/invokeai';
 import type { RootState } from 'app/store';
-import {getChallenge, solve_challenge} from "../../features/system/store/challenge";
-import {Challenge} from "app/invokeai";
+import {getChallenge, solve_challenge} from "../utils";
+
 
 /**
  * Returns an object containing all functions which use `socketio.emit()`.

@@ -1841,9 +1841,8 @@ def verify_solution(challenge: str, solution: str, difficulty: int) -> bool:
     return normalized_res < normalized_difficulty
 
 def verify_challenge(session: dict, solved: dict) -> bool:
-
-    print('session: ', session)
-    print('solved: ', solved)
+    # print('session: ', session)
+    # print('solved: ', solved)
 
     s_challenge: dict= session["challenge"]
 
