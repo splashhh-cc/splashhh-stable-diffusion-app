@@ -25,7 +25,9 @@ export default function MainWidth() {
       value={width}
       flexGrow={1}
       onChange={handleChangeWidth}
-      validValues={WIDTHS.filter((w) => w <= max_limits.generation_parameters.width)}
+      validValues={WIDTHS.filter(
+        (w) => w <= max_limits.generation_parameters.width
+      )}
       styleClass="main-option-block"
     />
   );

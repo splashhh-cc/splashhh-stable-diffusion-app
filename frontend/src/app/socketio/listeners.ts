@@ -249,12 +249,11 @@ const makeSocketIOListeners = (
         dispatch(
           addToast({
             title: `Server error: ${message}`,
-            status: "warning",
+            status: 'warning',
             duration: 5000,
             isClosable: true,
           })
         );
-
       } catch (e) {
         console.error(e);
       }

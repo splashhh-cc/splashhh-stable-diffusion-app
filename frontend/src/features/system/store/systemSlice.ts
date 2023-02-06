@@ -4,7 +4,7 @@ import { ExpandedIndex, UseToastOptions } from '@chakra-ui/react';
 import * as InvokeAI from 'app/invokeai';
 import i18n from 'i18n';
 import { v4 as uuidv4 } from 'uuid';
-import {Challenge, MaxLimits} from "app/invokeai";
+import { Challenge, MaxLimits } from 'app/invokeai';
 
 export type LogLevel = 'info' | 'warning' | 'error';
 
@@ -96,8 +96,14 @@ const initialSystemState: SystemState = {
   user_id: uuidv4(),
   challenge: null,
   max_limits: {
-    esrgan_parameters: {level: 2},
-    generation_parameters: {iterations: 1, steps: 30, height: 512, width: 512, hires_fix: false}
+    esrgan_parameters: { level: 2 },
+    generation_parameters: {
+      iterations: 1,
+      steps: 30,
+      height: 512,
+      width: 512,
+      hires_fix: false,
+    },
   },
 };
 
@@ -254,7 +260,7 @@ export const systemSlice = createSlice({
     setOpenModel: (state, action: PayloadAction<string | null>) => {
       state.openModel = action.payload;
     },
-    setUserId:  (state, action: PayloadAction<string>) => {
+    setUserId: (state, action: PayloadAction<string>) => {
       state.user_id = action.payload;
     },
     setChallenge: (state, action: PayloadAction<Challenge | null>) => {
@@ -262,7 +268,7 @@ export const systemSlice = createSlice({
     },
     setMaxLimits: (state, action: PayloadAction<InvokeAI.MaxLimits>) => {
       state.max_limits = action.payload;
-    }
+    },
   },
 });
 

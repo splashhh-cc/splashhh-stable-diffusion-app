@@ -14,14 +14,14 @@ import { OptionsState } from 'features/options/store/optionsSlice';
 import {
   addLogEntry,
   generationRequested,
-  modelChangeRequested, setChallenge,
+  modelChangeRequested,
+  setChallenge,
   setIsProcessing,
 } from 'features/system/store/systemSlice';
 import { InvokeTabName } from 'features/tabs/tabMap';
 import * as InvokeAI from 'app/invokeai';
 import type { RootState } from 'app/store';
-import {getChallenge, solve_challenge} from "../utils";
-
+import { getChallenge, solve_challenge } from '../utils';
 
 /**
  * Returns an object containing all functions which use `socketio.emit()`.
@@ -105,13 +105,15 @@ const makeSocketIOEmitters = (
       const esrganParameters = {
         upscale: [upscalingLevel, upscalingStrength],
       };
-      const {user_id} = getState().system;
+      const { user_id } = getState().system;
       if (getState().system.challenge === null) {
         const solved = await solve_challenge(await getChallenge());
         dispatch(setChallenge(solved));
       }
-      socketio.emit('runPostprocessing',
-        imageToProcess, {
+      socketio.emit(
+        'runPostprocessing',
+        imageToProcess,
+        {
           type: 'esrgan',
           ...esrganParameters,
         },
@@ -148,10 +150,13 @@ const makeSocketIOEmitters = (
         facetoolParameters.codeformer_fidelity = codeformerFidelity;
       }
 
-      socketio.emit('runPostprocessing', imageToProcess, {
-        type: facetoolType,
-        ...facetoolParameters,
-      },
+      socketio.emit(
+        'runPostprocessing',
+        imageToProcess,
+        {
+          type: facetoolType,
+          ...facetoolParameters,
+        },
         user_id,
         getState().system.challenge
       );

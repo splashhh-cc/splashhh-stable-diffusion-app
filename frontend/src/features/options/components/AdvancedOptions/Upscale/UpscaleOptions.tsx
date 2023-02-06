@@ -70,7 +70,9 @@ const UpscaleOptions = () => {
         label={t('options:scale')}
         value={upscalingLevel}
         onChange={handleChangeLevel}
-        validValues={UPSCALING_LEVELS.filter(({value}) => value <= max_limits.esrgan_parameters.level)}
+        validValues={UPSCALING_LEVELS.filter(
+          ({ value }) => value <= max_limits.esrgan_parameters.level
+        )}
       />
       <IAINumberInput
         isDisabled={!isESRGANAvailable}

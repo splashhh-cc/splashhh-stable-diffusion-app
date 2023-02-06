@@ -23,7 +23,7 @@ const HiresOptions = () => {
   return (
     <Flex gap={2} direction={'column'}>
       <IAISwitch
-        isDisabled={! max_limits.generation_parameters.hires_fix}
+        isDisabled={!max_limits.generation_parameters.hires_fix}
         label={t('options:hiresOptim')}
         fontSize={'md'}
         isChecked={hiresFix}

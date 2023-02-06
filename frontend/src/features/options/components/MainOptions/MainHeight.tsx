@@ -25,7 +25,9 @@ export default function MainHeight() {
       value={height}
       flexGrow={1}
       onChange={handleChangeHeight}
-      validValues={HEIGHTS.filter((h) => h <= max_limits.generation_parameters.height)}
+      validValues={HEIGHTS.filter(
+        (h) => h <= max_limits.generation_parameters.height
+      )}
       styleClass="main-option-block"
     />
   );
