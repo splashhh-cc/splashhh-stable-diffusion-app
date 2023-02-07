@@ -1,49 +1,50 @@
 <div align="center">
 
-![project logo](https://github.com/mauwii/InvokeAI/raw/main/docs/assets/invoke_ai_banner.png)
+[//]: # (![project logo]&#40;docs/assets/invoke_ai_banner.png&#41;)
 
-# InvokeAI: A Stable Diffusion Toolkit
-
-[![discord badge]][discord link]
+# InvokeAI by Splashhh: A Stable Diffusion Toolkit
 
 [![latest release badge]][latest release link] [![github stars badge]][github stars link] [![github forks badge]][github forks link]
 
-[![CI checks on main badge]][CI checks on main link] [![latest commit to main badge]][latest commit to main link]
+[![CI checks on main badge]][CI checks on main link]
 
 [![github open issues badge]][github open issues link] [![github open prs badge]][github open prs link]
 
-[CI checks on main badge]: https://flat.badgen.net/github/checks/invoke-ai/InvokeAI/main?label=CI%20status%20on%20main&cache=900&icon=github
-[CI checks on main link]: https://github.com/invoke-ai/InvokeAI/actions/workflows/test-invoke-conda.yml
-[discord badge]: https://flat.badgen.net/discord/members/ZmtBAhwWhy?icon=discord
-[discord link]: https://discord.gg/ZmtBAhwWhy
-[github forks badge]: https://flat.badgen.net/github/forks/invoke-ai/InvokeAI?icon=github
+[CI checks on main badge]: https://flat.badgen.net/github/checks/splashhh-cc/splashhh-stable-diffusion-app/main?label=CI%20status%20on%20main&cache=900&icon=github
+[CI checks on main link]: https://github.com/splashhh-cc/splashhh-stable-diffusion-app/actions/workflows/test-invoke-conda.yml
+[github forks badge]: https://flat.badgen.net/github/forks/splashhh-cc/splashhh-stable-diffusion-appicon=github
 [github forks link]: https://useful-forks.github.io/?repo=invoke-ai%2FInvokeAI
-[github open issues badge]: https://flat.badgen.net/github/open-issues/invoke-ai/InvokeAI?icon=github
-[github open issues link]: https://github.com/invoke-ai/InvokeAI/issues?q=is%3Aissue+is%3Aopen
-[github open prs badge]: https://flat.badgen.net/github/open-prs/invoke-ai/InvokeAI?icon=github
-[github open prs link]: https://github.com/invoke-ai/InvokeAI/pulls?q=is%3Apr+is%3Aopen
-[github stars badge]: https://flat.badgen.net/github/stars/invoke-ai/InvokeAI?icon=github
-[github stars link]: https://github.com/invoke-ai/InvokeAI/stargazers
-[latest commit to main badge]: https://flat.badgen.net/github/last-commit/invoke-ai/InvokeAI/main?icon=github&color=yellow&label=last%20dev%20commit&cache=900
-[latest commit to main link]: https://github.com/invoke-ai/InvokeAI/commits/main
-[latest release badge]: https://flat.badgen.net/github/release/invoke-ai/InvokeAI/development?icon=github
-[latest release link]: https://github.com/invoke-ai/InvokeAI/releases
+[github open issues badge]: https://flat.badgen.net/github/open-issues/splashhh-cc/splashhh-stable-diffusion-app?icon=github
+[github open issues link]: https://github.com/splashhh-cc/splashhh-stable-diffusion-app/issues?q=is%3Aissue+is%3Aopen
+[github open prs badge]: https://flat.badgen.net/github/open-prs/splashhh-cc/splashhh-stable-diffusion-app?icon=github
+[github open prs link]: https://github.com/splashhh-cc/splashhh-stable-diffusion-app/pulls?q=is%3Apr+is%3Aopen
+[github stars badge]: https://flat.badgen.net/github/stars/splashhh-cc/splashhh-stable-diffusion-app?icon=github
+[github stars link]: https://github.com/splashhh-cc/splashhh-stable-diffusion-app/stargazers
 
+[latest release badge]: https://flat.badgen.net/github/release/splashhh-cc/splashhh-stable-diffusion-app/development?icon=github
+[latest release link]: https://github.com/splashhh-cc/splashhh-stable-diffusion-app/releases
 </div>
 
-InvokeAI is a leading creative engine built to empower professionals and enthusiasts alike. Generate and create stunning visual media using the latest AI-driven technologies. InvokeAI offers an industry leading Web Interface, interactive Command Line Interface, and also serves as the foundation for multiple commercial products.
+This is a fork of
+[invoke-ai/InvokeAI](https://github.com/invoke-ai/InvokeAI),
+It provides a streamlined process with various new features and options to aid the image
+generation process. It runs on Windows, macOS and Linux machines, with
+GPU cards with as little as 4 GB of RAM. It provides both a polished
+Web interface, and an easy-to-use command-line interface.
 
-**Quick links**: [[How to Install](#installation)] [<a href="https://discord.gg/ZmtBAhwWhy">Discord Server</a>] [<a href="https://invoke-ai.github.io/InvokeAI/">Documentation and Tutorials</a>] [<a href="https://github.com/invoke-ai/InvokeAI/">Code and Downloads</a>] [<a href="https://github.com/invoke-ai/InvokeAI/issues">Bug Reports</a>] [<a href="https://github.com/invoke-ai/InvokeAI/discussions">Discussion, Ideas & Q&A</a>]
+### Features
 
-_Note: InvokeAI is rapidly evolving. Please use the
-[Issues](https://github.com/invoke-ai/InvokeAI/issues) tab to report bugs and make feature
+#### On top of the upstream INVOKE AI toolkit, we aim to provide:
+
+- The ability to support multiple users simultaneously, with each user having their own set of saved images.
+- A simple queueing mechanism to avoid overloading the server with multiple simultaneous requests.
+- Harden the API to avoid intrusive changes such as model changes, model deletions, and other changes that could break the multi-user experience.
+- Enforce reasonable maximum Limits to avoid long requests. This applies to the number of generated images, image sizes, iterations, and other parameters.
+
+
+_Note: InvokeAI by Splashhh is rapidly evolving. Please use the
+[Issues](https://github.com/splashhh-cc/splashhh-stable-diffusion-app/issues) tab to report bugs and make feature
 requests. Be sure to use the provided templates. They will help us diagnose issues faster._
-
-<div align="center">
-
-![canvas preview](https://github.com/mauwii/InvokeAI/raw/main/docs/assets/canvas_preview.png)
-
-</div>
 
 # Getting Started with InvokeAI
 
@@ -57,76 +58,29 @@ For full installation and upgrade instructions, please see:
 5. Wait a while, until it is done.
 6. The folder where you ran the installer from will now be filled with lots of files. If you are on Windows, double-click on the `invoke.bat` file. On macOS, open a Terminal window, drag `invoke.sh` from the folder into the Terminal, and press return. On Linux, run `invoke.sh`
 7. Press 2 to open the "browser-based UI", press enter/return, wait a minute or two for Stable Diffusion to start up, then open your browser and go to http://localhost:9090.
-8. Type `banana sushi` in the box on the top left and click `Invoke`
+8. Type `banana sushi` in the box on the top left and click `Invoke`:
 
 
-## Table of Contents
+For full documentation, please refer to the invoke-ai.github.io website: https://invoke-ai.github.io/InvokeAI/
 
-1. [Installation](#installation)
-2. [Hardware Requirements](#hardware-requirements)
-3. [Features](#features)
-4. [Latest Changes](#latest-changes)
-5. [Troubleshooting](#troubleshooting)
-6. [Contributing](#contributing)
-7. [Contributors](#contributors)
-8. [Support](#support)
-9. [Further Reading](#further-reading)
 
-## Installation
+### Invoke AI Features
 
-This fork is supported across Linux, Windows and Macintosh. Linux
-users can use either an Nvidia-based card (with CUDA support) or an
-AMD card (using the ROCm driver). For full installation and upgrade
-instructions, please see:
-[InvokeAI Installation Overview](https://invoke-ai.github.io/InvokeAI/installation/INSTALL_SOURCE/)
+#### Major Features
 
-### Hardware Requirements
-
-InvokeAI is supported across Linux, Windows and macOS. Linux
-users can use either an Nvidia-based card (with CUDA support) or an
-AMD card (using the ROCm driver).
-
-#### System
-
-You will need one of the following:
-
-- An NVIDIA-based graphics card with 4 GB or more VRAM memory.
-- An Apple computer with an M1 chip.
-- An AMD-based graphics card with 4GB or more VRAM memory. (Linux only)
-
-We do not recommend the GTX 1650 or 1660 series video cards. They are
-unable to run in half-precision mode and do not have sufficient VRAM
-to render 512x512 images.
-
-#### Memory
-
-- At least 12 GB Main Memory RAM.
-
-#### Disk
-
-- At least 12 GB of free disk space for the machine learning model, Python, and all its dependencies.
-
-## Features
-
-Feature documentation can be reviewed by navigating to [the InvokeAI Documentation page](https://invoke-ai.github.io/InvokeAI/features/)
-
-### *Web Server & UI*
-
-InvokeAI offers a locally hosted Web Server & React Frontend, with an industry leading user experience. The Web-based UI allows for simple and intuitive workflows, and is responsive for use on mobile devices and tablets accessing the web server.
-
-### *Unified Canvas*
-
-The Unified Canvas is a fully integrated canvas implementation with support for all core generation capabilities, in/outpainting, brush tools, and more. This creative tool unlocks the capability for artists to create with AI as a creative collaborator, and can be used to augment AI-generated imagery, sketches, photography, renders, and more.
-
-### *Advanced Prompt Syntax*
-
-InvokeAI's advanced prompt syntax allows for token weighting, cross-attention control, and prompt blending, allowing for fine-tuned tweaking of your invocations and exploration of the latent space.
-
-### *Command Line Interface*
-
-For users utilizing a terminal-based environment, or who want to take advantage of CLI features, InvokeAI offers an extensive and actively supported command-line interface that provides the full suite of generation functionality available in the tool.
-
-### Other features
+- [Web Server](https://invoke-ai.github.io/InvokeAI/features/WEB/)
+- [Interactive Command Line Interface](https://invoke-ai.github.io/InvokeAI/features/CLI/)
+- [Image To Image](https://invoke-ai.github.io/InvokeAI/features/IMG2IMG/)
+- [Inpainting Support](https://invoke-ai.github.io/InvokeAI/features/INPAINTING/)
+- [Outpainting Support](https://invoke-ai.github.io/InvokeAI/features/OUTPAINTING/)
+- [Upscaling, face-restoration and outpainting](https://invoke-ai.github.io/InvokeAI/features/POSTPROCESS/)
+- [Reading Prompts From File](https://invoke-ai.github.io/InvokeAI/features/PROMPTS/#reading-prompts-from-a-file)
+- [Prompt Blending](https://invoke-ai.github.io/InvokeAI/features/PROMPTS/#prompt-blending)
+- [Thresholding and Perlin Noise Initialization Options](https://invoke-ai.github.io/InvokeAI/features/OTHER/#thresholding-and-perlin-noise-initialization-options)
+- [Negative/Unconditioned Prompts](https://invoke-ai.github.io/InvokeAI/features/PROMPTS/#negative-and-unconditioned-prompts)
+- [Variations](https://invoke-ai.github.io/InvokeAI/features/VARIATIONS/)
+- [Personalizing Text-to-Image Generation](https://invoke-ai.github.io/InvokeAI/features/TEXTUAL_INVERSION/)
+- [Simplified API for text to image generation](https://invoke-ai.github.io/InvokeAI/features/OTHER/#simplified-api)
 
 - *Support for both ckpt and diffusers models*
 - *SD 2.0, 2.1 support*
@@ -141,43 +95,9 @@ For users utilizing a terminal-based environment, or who want to take advantage 
 - *Node-Based Architecture & UI*
 - And more...
 
-### Latest Changes
 
-For our latest changes, view our [Release
-Notes](https://github.com/invoke-ai/InvokeAI/releases) and the
-[CHANGELOG](docs/CHANGELOG.md).
-
-## Troubleshooting
+### Troubleshooting
 
 Please check out our **[Q&A](https://invoke-ai.github.io/InvokeAI/help/TROUBLESHOOT/#faq)** to get solutions for common installation
 problems and other issues.
-
-# Contributing
-
-Anyone who wishes to contribute to this project, whether documentation, features, bug fixes, code
-cleanup, testing, or code reviews, is very much encouraged to do so.
-
-To join, just raise your hand on the InvokeAI Discord server (#dev-chat) or the GitHub discussion board.
-
-If you are unfamiliar with how
-to contribute to GitHub projects, here is a
-[Getting Started Guide](https://opensource.com/article/19/7/create-pull-request-github). A full set of contribution guidelines, along with templates, are in progress. You can **make your pull request against the "main" branch**.
-
-We hope you enjoy using our software as much as we enjoy creating it,
-and we hope that some of those of you who are reading this will elect
-to become part of our community.
-
-Welcome to InvokeAI!
-
-### Contributors
-
-This fork is a combined effort of various people from across the world.
-[Check out the list of all these amazing people](https://invoke-ai.github.io/InvokeAI/other/CONTRIBUTORS/). We thank them for
-their time, hard work and effort.
-
-### Support
-
-For support, please use this repository's GitHub Issues tracking service, or join the Discord.
-
-Original portions of the software are Copyright (c) 2023 by respective contributors.
 

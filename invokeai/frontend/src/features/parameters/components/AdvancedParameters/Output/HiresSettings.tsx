@@ -74,6 +74,8 @@ const HiresSettings = () => {
   const handleChangeHiresFix = (e: ChangeEvent<HTMLInputElement>) =>
     dispatch(setHiresFix(e.target.checked));
 
+  const { max_limits } = useAppSelector((state: RootState) => state.system);
+
   return (
     <Flex gap={2} direction={'column'}>
       <IAISwitch
@@ -81,6 +83,7 @@ const HiresSettings = () => {
         fontSize={'md'}
         isChecked={hiresFix}
         onChange={handleChangeHiresFix}
+        isDisabled={!max_limits.generation_parameters.hires_fix}
       />
       <HiresStrength />
     </Flex>

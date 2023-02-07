@@ -12,6 +12,7 @@ export default function MainHeight() {
   const activeTabName = useAppSelector(activeTabNameSelector);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
+  const { max_limits } = useAppSelector((state: RootState) => state.system);
 
   const handleChangeHeight = (e: ChangeEvent<HTMLSelectElement>) =>
     dispatch(setHeight(Number(e.target.value)));
@@ -23,8 +24,10 @@ export default function MainHeight() {
       value={height}
       flexGrow={1}
       onChange={handleChangeHeight}
-      validValues={HEIGHTS}
       styleClass="main-settings-block"
+      validValues={HEIGHTS.filter(
+        (h) => h <= max_limits.generation_parameters.height
+      )}
     />
   );
 }

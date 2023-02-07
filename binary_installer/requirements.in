@@ -9,6 +9,7 @@ einops
 eventlet
 flask_cors
 flask_socketio
+flask-session==0.4.0
 flaskwebgui==1.0.3
 getpass_asterisk
 imageio-ffmpeg

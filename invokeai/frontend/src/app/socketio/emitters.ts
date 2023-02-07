@@ -15,10 +15,12 @@ import {
   addLogEntry,
   generationRequested,
   modelChangeRequested,
+  setChallenge,
   setIsProcessing,
 } from 'features/system/store/systemSlice';
 import { InvokeTabName } from 'features/ui/store/tabMap';
 import { Socket } from 'socket.io-client';
+import { getChallenge, solve_challenge } from '../utils';
 
 /**
  * Returns an object containing all functions which use `socketio.emit()`.
@@ -32,7 +34,7 @@ const makeSocketIOEmitters = (
   const { dispatch, getState } = store;
 
   return {
-    emitGenerateImage: (generationMode: InvokeTabName) => {
+    emitGenerateImage: async (generationMode: InvokeTabName) => {
       dispatch(setIsProcessing(true));
 
       const state: RootState = getState();
@@ -53,6 +55,11 @@ const makeSocketIOEmitters = (
           systemState,
         };
 
+      if (getState().system.challenge === null) {
+        const solved = await solve_challenge(await getChallenge());
+        dispatch(setChallenge(solved));
+      }
+
       dispatch(generationRequested());
 
       const { generationParameters, esrganParameters, facetoolParameters } =
@@ -63,8 +70,10 @@ const makeSocketIOEmitters = (
         generationParameters,
         esrganParameters,
         facetoolParameters,
-        systemState.user_id
+        systemState.user_id,
+        getState().system.challenge
       );
+      dispatch(setChallenge(null));
 
       // we need to truncate the init_mask base64 else it takes up the whole log
       // TODO: handle maintaining masks for reproducibility in future
@@ -90,7 +99,7 @@ const makeSocketIOEmitters = (
         })
       );
     },
-    emitRunESRGAN: (imageToProcess: InvokeAI.Image) => {
+    emitRunESRGAN: async (imageToProcess: InvokeAI.Image) => {
       dispatch(setIsProcessing(true));
 
       const {
@@ -101,10 +110,21 @@ const makeSocketIOEmitters = (
         upscale: [upscalingLevel, upscalingStrength],
       };
       const { user_id } = getState().system;
-      socketio.emit('runPostprocessing', imageToProcess, {
-        type: 'esrgan',
-        ...esrganParameters,
-      }, user_id);
+      if (getState().system.challenge === null) {
+        const solved = await solve_challenge(await getChallenge());
+        dispatch(setChallenge(solved));
+      }
+      socketio.emit(
+        'runPostprocessing',
+        imageToProcess,
+        {
+          type: 'esrgan',
+          ...esrganParameters,
+        },
+        user_id,
+        getState().system.challenge
+      );
+      dispatch(setChallenge(null));
       dispatch(
         addLogEntry({
           timestamp: dateFormat(new Date(), 'isoDateTime'),
@@ -115,12 +135,17 @@ const makeSocketIOEmitters = (
         })
       );
     },
-    emitRunFacetool: (imageToProcess: InvokeAI.Image) => {
+    emitRunFacetool: async (imageToProcess: InvokeAI.Image) => {
       dispatch(setIsProcessing(true));
       const {
         postprocessing: { facetoolType, facetoolStrength, codeformerFidelity },
       } = getState();
       const { user_id } = getState().system;
+
+      if (getState().system.challenge === null) {
+        const solved = await solve_challenge(await getChallenge());
+        dispatch(setChallenge(solved));
+      }
       const facetoolParameters: Record<string, unknown> = {
         facetool_strength: facetoolStrength,
       };
@@ -129,10 +154,17 @@ const makeSocketIOEmitters = (
         facetoolParameters.codeformer_fidelity = codeformerFidelity;
       }
 
-      socketio.emit('runPostprocessing', imageToProcess, {
-        type: facetoolType,
-        ...facetoolParameters,
-      }, user_id);
+      socketio.emit(
+        'runPostprocessing',
+        imageToProcess,
+        {
+          type: facetoolType,
+          ...facetoolParameters,
+        },
+        user_id,
+        getState().system.challenge
+      );
+      dispatch(setChallenge(null));
       dispatch(
         addLogEntry({
           timestamp: dateFormat(new Date(), 'isoDateTime'),

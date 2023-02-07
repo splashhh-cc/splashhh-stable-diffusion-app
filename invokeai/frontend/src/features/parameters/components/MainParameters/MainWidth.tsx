@@ -11,6 +11,7 @@ export default function MainWidth() {
   const width = useAppSelector((state: RootState) => state.generation.width);
   const activeTabName = useAppSelector(activeTabNameSelector);
   const { t } = useTranslation();
+  const { max_limits } = useAppSelector((state: RootState) => state.system);
 
   const dispatch = useAppDispatch();
 
@@ -24,8 +25,10 @@ export default function MainWidth() {
       value={width}
       flexGrow={1}
       onChange={handleChangeWidth}
-      validValues={WIDTHS}
       styleClass="main-settings-block"
+      validValues={WIDTHS.filter(
+        (w) => w <= max_limits.generation_parameters.width
+      )}
     />
   );
 }

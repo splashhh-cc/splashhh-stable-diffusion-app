@@ -29,6 +29,7 @@ const mainIterationsSelector = createSelector(
 export default function MainIterations() {
   const dispatch = useAppDispatch();
   const { iterations } = useAppSelector(mainIterationsSelector);
+  const { max_limits } = useAppSelector((state: RootState) => state.system);
   const { t } = useTranslation();
 
   const handleChangeIterations = (v: number) => dispatch(setIterations(v));
@@ -38,7 +39,7 @@ export default function MainIterations() {
       label={t('parameters:images')}
       step={1}
       min={1}
-      max={9999}
+      max={max_limits.generation_parameters.iterations}
       onChange={handleChangeIterations}
       value={iterations}
       width="auto"

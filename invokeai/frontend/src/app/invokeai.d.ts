@@ -293,6 +293,23 @@ export declare type UploadOutpaintingMergeImagePayload = {
   name: string;
 };
 
-export declare type GetChallengeResponse = {
+export declare type Challenge = {
   challenge: string;
+  difficulty: number;
+  solution: string;
+  guess_count: number;
+  time_taken_ms: number;
+};
+
+export declare type MaxLimits = {
+  generation_parameters: {
+    iterations: number;
+    steps: number;
+    hires_fix: boolean;
+    height: number;
+    width: number;
+  };
+  esrgan_parameters: {
+    level: number;
+  };
 };
