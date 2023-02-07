@@ -1895,7 +1895,10 @@ def verify_challenge_solution(session: dict, solved: dict) -> bool:
     # print('session: ', session)
     # print('solved: ', solved)
 
-    s_challenge: dict= session["challenge"]
+    try:
+        s_challenge: dict= session["challenge"]
+    except KeyError:
+        raise ValueError("No challenge was found for the session.")
 
     if solved is None or solved.get("solution") is None:
         raise ValueError("No solution for the challenge was provided.")

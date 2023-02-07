@@ -9,7 +9,13 @@ export default function MainSteps() {
   const dispatch = useAppDispatch();
   const steps = useAppSelector((state: RootState) => state.options.steps);
   const { t } = useTranslation();
-  const { max_limits } = useAppSelector((state: RootState) => state.system);
+  const max_steps = useAppSelector(
+    (state: RootState) => state.system.max_limits.generation_parameters.steps
+  );
+
+  if (steps > max_steps) {
+    dispatch(setSteps(max_steps));
+  }
 
   const handleChangeSteps = (v: number) => dispatch(setSteps(v));
 
@@ -17,7 +23,7 @@ export default function MainSteps() {
     <IAINumberInput
       label={t('options:steps')}
       min={1}
-      max={max_limits.generation_parameters.steps}
+      max={max_steps}
       step={1}
       onChange={handleChangeSteps}
       value={steps}
