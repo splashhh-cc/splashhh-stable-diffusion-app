@@ -1662,11 +1662,13 @@ class InvokeAIWebServer:
             print("\n")
 
     def enforce_max_limits(self, generation_parameters, esrgan_parameters, facetool_parameters):
-        parameter_type_str = "generation_parameters"
-        self._enforce_limits(generation_parameters, self.max_limits[parameter_type_str], parameter_type_str)
+        if generation_parameters:
+            parameter_type_str = "generation_parameters"
+            self._enforce_limits(generation_parameters, self.max_limits[parameter_type_str], parameter_type_str)
 
-        parameter_type_str = "esrgan_parameters"
-        self._enforce_limits(esrgan_parameters, self.max_limits[parameter_type_str], parameter_type_str)
+        if esrgan_parameters:
+            parameter_type_str = "esrgan_parameters"
+            self._enforce_limits(esrgan_parameters, self.max_limits[parameter_type_str], parameter_type_str)
 
         return generation_parameters, esrgan_parameters, facetool_parameters
 
