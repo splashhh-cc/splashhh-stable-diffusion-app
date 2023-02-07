@@ -9,15 +9,18 @@ import io
 import base64
 import os
 import json
+import time
 
 from werkzeug.utils import secure_filename
-from flask import Flask, redirect, send_from_directory, request, make_response, copy_current_request_context
+from flask import Flask, redirect, send_from_directory, request, make_response, copy_current_request_context, session
 from flask_socketio import SocketIO
+from flask_session import Session
 from PIL import Image, ImageOps
 from PIL.Image import Image as ImageType
 from uuid import uuid4
 from threading import Event
 from eventlet.semaphore import Semaphore
+from hashlib import pbkdf2_hmac
 
 from ldm.generate import Generate
 from ldm.invoke.args import Args, APP_ID, APP_VERSION, calculate_init_img_hash
@@ -58,10 +61,31 @@ class InvokeAIWebServer:
         self.canceled = Event()
         self.ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
+        # load control
         s_value = 1
         self.image_gen_semaphore = Semaphore(s_value)
         max_waiters = 10
-        self.max_waiters = s_value - max_waiters + 1 # The waiters are considered as negative values in self.semaphore.balance
+        self.max_waiters = s_value - max_waiters + 1  # The waiters are considered as negative values in self.semaphore.balance
+
+        # parameters control
+        self.max_limits = {
+            'generation_parameters': {
+                # max images:
+                "iterations": 2,
+                # max steps:
+                "steps": 25,
+                # allow high res?
+                "hires_fix": False,
+                # max image height:
+                "height": 768,
+                # max image width:
+                "width": 512,
+            },
+            'esrgan_parameters': {
+                # max scale up level:
+                "level": 3,
+            }
+        }
 
     def allowed_file(self, filename: str) -> bool:
         return (
@@ -105,7 +129,11 @@ class InvokeAIWebServer:
             __name__, static_url_path="", static_folder=frontend_path
         )
 
-        self.socketio = SocketIO(self.app, **socketio_args, async_mode=None)
+        self.app.config['SECRET_KEY'] = 'top-secret!'
+        self.app.config['SESSION_TYPE'] = 'filesystem'
+        Session(self.app)
+
+        self.socketio = SocketIO(self.app, **socketio_args, async_mode=None, manage_session=False)
 
         # Keep Server Alive Route
         @self.app.route("/flaskwebgui-keep-server-alive")
@@ -130,10 +158,13 @@ class InvokeAIWebServer:
         # Challenge
         @self.app.route("/get_challenge", methods=["get"])
         def get_challenge():
-            response = {
+            print(f">> Challenge requested")
+            challenge = {
                 "challenge": 'hard-challenge #' + str(uuid4()),
+                "difficulty": 2000,
             }
-            return make_response(response, 200)
+            session["challenge"] = challenge
+            return make_response(challenge, 200)
 
         @self.app.route("/upload", methods=["POST"])
         def upload():
@@ -327,6 +358,7 @@ class InvokeAIWebServer:
             config = self.get_system_config()
             config["model_list"] = self.generate.model_cache.list_models()
             config["infill_methods"] = infill_methods()
+            config["max_limits"] = self.max_limits
             socketio.emit("systemConfig", config, to=request.sid)
 
         @socketio.on('searchForModels')
@@ -664,11 +696,16 @@ class InvokeAIWebServer:
 
         @socketio.on("generateImage")
         def handle_generate_image_event(
-            generation_parameters, esrgan_parameters, facetool_parameters, user_id: str = ''
+            generation_parameters, esrgan_parameters, facetool_parameters, user_id: str = '', solvedChallenge: dict = None
         ):
             try:
+                verify_challenge_solution(session, solvedChallenge)
+
                 if user_id != secure_filename(user_id):
                     raise ValueError("Invalid user_id")
+
+                generation_parameters, esrgan_parameters, facetool_parameters = self.enforce_max_limits(
+                    generation_parameters, esrgan_parameters, facetool_parameters)
 
                 # truncate long init_mask/init_img base64 if needed
                 printable_parameters = {
@@ -702,14 +739,19 @@ class InvokeAIWebServer:
                 print("\n")
 
         @socketio.on("runPostprocessing")
-        def handle_run_postprocessing(original_image, postprocessing_parameters, user_id: str = ''):
+        def handle_run_postprocessing(original_image, postprocessing_parameters, user_id: str = '', solvedChallenge: dict = None
+        ):
             try:
-                if user_id != secure_filename(user_id):
-                    raise ValueError("Invalid user_id")
-
                 print(
                     f'>> Postprocessing requested for "{original_image["url"]}": {postprocessing_parameters}'
                 )
+                verify_challenge_solution(session, solvedChallenge)
+
+                if user_id != secure_filename(user_id):
+                    raise ValueError("Invalid user_id")
+
+                if 'postprocessed' in original_image['url']:
+                    raise ValueError("Unable to postprocess an image more then once")
 
                 progress = Progress()
 
@@ -1619,6 +1661,27 @@ class InvokeAIWebServer:
             traceback.print_exc()
             print("\n")
 
+    def enforce_max_limits(self, generation_parameters, esrgan_parameters, facetool_parameters):
+        if generation_parameters:
+            parameter_type_str = "generation_parameters"
+            self._enforce_limits(generation_parameters, self.max_limits[parameter_type_str], parameter_type_str)
+
+        if esrgan_parameters:
+            parameter_type_str = "esrgan_parameters"
+            self._enforce_limits(esrgan_parameters, self.max_limits[parameter_type_str], parameter_type_str)
+
+        return generation_parameters, esrgan_parameters, facetool_parameters
+
+    def _enforce_limits(self, input_parameters, max_limits, parameter_type_str):
+        for key in input_parameters.keys() & max_limits.keys():
+            if input_parameters[key] > max_limits[key]:
+                input_parameters[key] = max_limits[key]
+
+                err_msg = parameter_type_str + ' exceeded max limit for key: ' + key + '. Setting to max limit: ' + str(
+                    max_limits[key])
+                print(err_msg)
+                self.socketio.emit("error", {"message": (str(err_msg))}, to=request.sid)
+
 
 class Progress:
     def __init__(self, generation_parameters=None):
@@ -1806,3 +1869,47 @@ def save_thumbnail(
     image_copy.save(thumbnail_path, "WEBP")
 
     return thumbnail_path
+
+# verify pow solution to a given challenge
+def verify_solution(challenge: str, solution: str, difficulty: int) -> bool:
+    # the function should normalize a bytes array to a number between 0 and 1
+    # output 1 will represent the maximum value of the input array
+    def normalize_key(num: bytes) -> float:
+        max_value = 2 ** (8 * len(num))
+        return int.from_bytes(num, 'big') / max_value
+
+    iterations = 100
+    key_length = 32
+
+    challenge_bytes = challenge.encode('utf-8')
+    solution_bytes = solution.encode('utf-8')
+
+    res = pbkdf2_hmac('sha256', challenge_bytes, solution_bytes, iterations, key_length)
+    normalized_res = normalize_key(res)
+
+    normalized_difficulty = 1 / difficulty
+
+    return normalized_res < normalized_difficulty
+
+def verify_challenge_solution(session: dict, solved: dict) -> bool:
+    # print('session: ', session)
+    # print('solved: ', solved)
+
+    try:
+        s_challenge: dict= session["challenge"]
+    except KeyError:
+        raise ValueError("No challenge was found for the session.")
+
+    if solved is None or solved.get("solution") is None:
+        raise ValueError("No solution for the challenge was provided.")
+
+    if s_challenge.get("challenge") != solved.get("challenge"):
+        raise ValueError("Session challenge string does not match to the provided challenge.")
+
+    if s_challenge.get("difficulty") != solved.get("difficulty"):
+        raise ValueError("Session challenge difficulty does not match to the provided difficulty.")
+
+    if not verify_solution(solved.get("challenge"), solved.get("solution"), solved.get("difficulty")):
+        raise ValueError("The provided solution for the challenge is not valid.")
+
+    return True
