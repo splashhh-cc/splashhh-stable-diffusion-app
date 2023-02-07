@@ -15,7 +15,6 @@ const HiresOptions = () => {
   const hiresFix = useAppSelector((state: RootState) => state.options.hiresFix);
 
   const { t } = useTranslation();
-  const { max_limits } = useAppSelector((state: RootState) => state.system);
 
   const handleChangeHiresFix = (e: ChangeEvent<HTMLInputElement>) =>
     dispatch(setHiresFix(e.target.checked));
@@ -23,7 +22,6 @@ const HiresOptions = () => {
   return (
     <Flex gap={2} direction={'column'}>
       <IAISwitch
-        isDisabled={!max_limits.generation_parameters.hires_fix}
         label={t('options:hiresOptim')}
         fontSize={'md'}
         isChecked={hiresFix}

@@ -56,7 +56,6 @@ const UpscaleOptions = () => {
   const { isESRGANAvailable } = useAppSelector(systemSelector);
 
   const { t } = useTranslation();
-  const { max_limits } = useAppSelector((state: RootState) => state.system);
 
   const handleChangeLevel = (e: ChangeEvent<HTMLSelectElement>) =>
     dispatch(setUpscalingLevel(Number(e.target.value) as UpscalingLevel));
@@ -70,9 +69,7 @@ const UpscaleOptions = () => {
         label={t('options:scale')}
         value={upscalingLevel}
         onChange={handleChangeLevel}
-        validValues={UPSCALING_LEVELS.filter(
-          ({ value }) => value <= max_limits.esrgan_parameters.level
-        )}
+        validValues={UPSCALING_LEVELS}
       />
       <IAINumberInput
         isDisabled={!isESRGANAvailable}
