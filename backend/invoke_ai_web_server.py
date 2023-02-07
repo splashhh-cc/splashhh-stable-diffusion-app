@@ -61,10 +61,31 @@ class InvokeAIWebServer:
         self.canceled = Event()
         self.ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
+        # load control
         s_value = 1
         self.image_gen_semaphore = Semaphore(s_value)
         max_waiters = 10
-        self.max_waiters = s_value - max_waiters + 1 # The waiters are considered as negative values in self.semaphore.balance
+        self.max_waiters = s_value - max_waiters + 1  # The waiters are considered as negative values in self.semaphore.balance
+
+        # parameters control
+        self.max_limits = {
+            'generation_parameters': {
+                # max images:
+                "iterations": 2,
+                # max steps:
+                "steps": 25,
+                # allow high res?
+                "hires_fix": False,
+                # max image height:
+                "height": 768,
+                # max image width:
+                "width": 512,
+            },
+            'esrgan_parameters': {
+                # max scale up level:
+                "level": 3,
+            }
+        }
 
     def allowed_file(self, filename: str) -> bool:
         return (
@@ -337,6 +358,7 @@ class InvokeAIWebServer:
             config = self.get_system_config()
             config["model_list"] = self.generate.model_cache.list_models()
             config["infill_methods"] = infill_methods()
+            config["max_limits"] = self.max_limits
             socketio.emit("systemConfig", config, to=request.sid)
 
         @socketio.on('searchForModels')
@@ -682,6 +704,9 @@ class InvokeAIWebServer:
                 if user_id != secure_filename(user_id):
                     raise ValueError("Invalid user_id")
 
+                generation_parameters, esrgan_parameters, facetool_parameters = self.enforce_max_limits(
+                    generation_parameters, esrgan_parameters, facetool_parameters)
+
                 # truncate long init_mask/init_img base64 if needed
                 printable_parameters = {
                     **generation_parameters,
@@ -717,14 +742,16 @@ class InvokeAIWebServer:
         def handle_run_postprocessing(original_image, postprocessing_parameters, user_id: str = '', solvedChallenge: dict = None
         ):
             try:
+                print(
+                    f'>> Postprocessing requested for "{original_image["url"]}": {postprocessing_parameters}'
+                )
                 verify_challenge_solution(session, solvedChallenge)
 
                 if user_id != secure_filename(user_id):
                     raise ValueError("Invalid user_id")
 
-                print(
-                    f'>> Postprocessing requested for "{original_image["url"]}": {postprocessing_parameters}'
-                )
+                if 'postprocessed' in original_image['url']:
+                    raise ValueError("Unable to postprocess an image more then once")
 
                 progress = Progress()
 
@@ -1633,6 +1660,25 @@ class InvokeAIWebServer:
 
             traceback.print_exc()
             print("\n")
+
+    def enforce_max_limits(self, generation_parameters, esrgan_parameters, facetool_parameters):
+        parameter_type_str = "generation_parameters"
+        self._enforce_limits(generation_parameters, self.max_limits[parameter_type_str], parameter_type_str)
+
+        parameter_type_str = "esrgan_parameters"
+        self._enforce_limits(esrgan_parameters, self.max_limits[parameter_type_str], parameter_type_str)
+
+        return generation_parameters, esrgan_parameters, facetool_parameters
+
+    def _enforce_limits(self, input_parameters, max_limits, parameter_type_str):
+        for key in input_parameters.keys() & max_limits.keys():
+            if input_parameters[key] > max_limits[key]:
+                input_parameters[key] = max_limits[key]
+
+                err_msg = parameter_type_str + ' exceeded max limit for key: ' + key + '. Setting to max limit: ' + str(
+                    max_limits[key])
+                print(err_msg)
+                self.socketio.emit("error", {"message": (str(err_msg))}, to=request.sid)
 
 
 class Progress:
