@@ -34,6 +34,4 @@ export function useFreshChallengeWatcher() {
   }, [challenge, dispatch]);
 
 
-
-
 }

@@ -9,13 +9,13 @@ import useToastWatcher from 'features/system/hooks/useToastWatcher';
 
 import FloatingGalleryButton from 'features/ui/components/FloatingGalleryButton';
 import FloatingParametersPanelButtons from 'features/ui/components/FloatingParametersPanelButtons';
-//import {useFreshChallengeWatcher} from "features/system/store/challenge";
+import { useFreshChallengeWatcher } from 'features/system/store/challenge';
 
 keepGUIAlive();
 
 const App = () => {
   useToastWatcher();
-  //useFreshChallengeWatcher()
+  useFreshChallengeWatcher();
 
   return (
     <div className="App">

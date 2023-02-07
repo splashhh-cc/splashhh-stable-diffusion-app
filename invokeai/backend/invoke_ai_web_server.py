@@ -17,6 +17,9 @@ from PIL.Image import Image as ImageType
 from flask import Flask, redirect, send_from_directory, request, make_response
 from flask_socketio import SocketIO
 from werkzeug.utils import secure_filename
+from uuid import uuid4
+from threading import Event
+from eventlet.semaphore import Semaphore
 
 from invokeai.backend.modules.get_canvas_generation_mode import (
     get_canvas_generation_mode,
@@ -57,6 +60,11 @@ class InvokeAIWebServer:
 
         self.canceled = Event()
         self.ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
+
+        s_value = 1
+        self.image_gen_semaphore = Semaphore(s_value)
+        max_waiters = 10
+        self.max_waiters = s_value - max_waiters + 1 # The waiters are considered as negative values in self.semaphore.balance
 
     def allowed_file(self, filename: str) -> bool:
         return (
@@ -99,7 +107,7 @@ class InvokeAIWebServer:
             __name__, static_url_path="", static_folder=frontend.__path__[0]
         )
 
-        self.socketio = SocketIO(self.app, **socketio_args)
+        self.socketio = SocketIO(self.app, **socketio_args, async_mode=None)
 
         # Keep Server Alive Route
         @self.app.route("/flaskwebgui-keep-server-alive")
@@ -724,33 +732,36 @@ class InvokeAIWebServer:
                 socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                 eventlet.sleep(0)
 
-                if postprocessing_parameters["type"] == "esrgan":
-                    image = self.esrgan.process(
-                        image=image,
-                        upsampler_scale=postprocessing_parameters["upscale"][0],
-                        strength=postprocessing_parameters["upscale"][1],
-                        seed=seed,
-                    )
-                elif postprocessing_parameters["type"] == "gfpgan":
-                    image = self.gfpgan.process(
-                        image=image,
-                        strength=postprocessing_parameters["facetool_strength"],
-                        seed=seed,
-                    )
-                elif postprocessing_parameters["type"] == "codeformer":
-                    image = self.codeformer.process(
-                        image=image,
-                        strength=postprocessing_parameters["facetool_strength"],
-                        fidelity=postprocessing_parameters["codeformer_fidelity"],
-                        seed=seed,
-                        device="cpu"
-                        if str(self.generate.device) == "mps"
-                        else self.generate.device,
-                    )
-                else:
-                    raise TypeError(
-                        f'{postprocessing_parameters["type"]} is not a valid postprocessing type'
-                    )
+                if self.image_gen_semaphore.balance <= self.max_waiters:
+                    raise Exception("Too many concurrent requests. Please try again later.")
+                with self.image_gen_semaphore:
+                    if postprocessing_parameters["type"] == "esrgan":
+                        image = self.esrgan.process(
+                            image=image,
+                            upsampler_scale=postprocessing_parameters["upscale"][0],
+                            strength=postprocessing_parameters["upscale"][1],
+                            seed=seed,
+                        )
+                    elif postprocessing_parameters["type"] == "gfpgan":
+                        image = self.gfpgan.process(
+                            image=image,
+                            strength=postprocessing_parameters["facetool_strength"],
+                            seed=seed,
+                        )
+                    elif postprocessing_parameters["type"] == "codeformer":
+                        image = self.codeformer.process(
+                            image=image,
+                            strength=postprocessing_parameters["facetool_strength"],
+                            fidelity=postprocessing_parameters["codeformer_fidelity"],
+                            seed=seed,
+                            device="cpu"
+                            if str(self.generate.device) == "mps"
+                            else self.generate.device,
+                        )
+                    else:
+                        raise TypeError(
+                            f'{postprocessing_parameters["type"]} is not a valid postprocessing type'
+                        )
 
                 progress.set_current_status("common:statusSavingImage")
                 socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
@@ -862,6 +873,8 @@ class InvokeAIWebServer:
         try:
             if user_id != secure_filename(user_id):
                 raise ValueError("Invalid user_id")
+
+            req_sid = request.sid
 
             self.canceled.clear()
 
@@ -979,7 +992,6 @@ class InvokeAIWebServer:
             elif generation_parameters["generation_mode"] == "img2img":
                 init_img_url = generation_parameters["init_img"]
                 init_img_path = self.get_image_path_from_url(init_img_url, user_id)
-                print("----init_img_path:", init_img_path)
                 generation_parameters["init_img"] = Image.open(init_img_path).convert('RGB')
                 generation_parameters["user_id"] = user_id
 
@@ -990,6 +1002,7 @@ class InvokeAIWebServer:
                 nonlocal step_index
                 nonlocal generation_parameters
                 nonlocal progress
+                nonlocal req_sid
 
                 generation_messages = {
                     "txt2img": "common:statusGeneratingTextToImage",
@@ -1038,7 +1051,7 @@ class InvokeAIWebServer:
                             "generationMode": generation_parameters["generation_mode"],
                             "boundingBox": original_bounding_box,
                         },
-                        to=request.sid,
+                        to=req_sid,
                     )
 
 
@@ -1060,10 +1073,10 @@ class InvokeAIWebServer:
                             "generationMode": generation_parameters["generation_mode"],
                             "boundingBox": original_bounding_box,
                         },
-                        to=request.sid,
+                        to=req_sid,
                     )
 
-                self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
+                self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=req_sid)
                 eventlet.sleep(0)
 
             def image_done(image, seed, first_seed, attention_maps_image=None):
@@ -1074,6 +1087,7 @@ class InvokeAIWebServer:
                 nonlocal esrgan_parameters
                 nonlocal facetool_parameters
                 nonlocal progress
+                nonlocal req_sid
 
                 step_index = 1
                 nonlocal prior_variations
@@ -1091,7 +1105,7 @@ class InvokeAIWebServer:
 
                 progress.set_current_status("common:statusGenerationComplete")
 
-                self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
+                self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=req_sid)
                 eventlet.sleep(0)
 
                 all_parameters = generation_parameters
@@ -1118,7 +1132,7 @@ class InvokeAIWebServer:
                 if esrgan_parameters:
                     progress.set_current_status("common:statusUpscaling")
                     progress.set_current_status_has_steps(False)
-                    self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
+                    self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=req_sid)
                     eventlet.sleep(0)
 
                     image = self.esrgan.process(
@@ -1144,7 +1158,7 @@ class InvokeAIWebServer:
                         progress.set_current_status("common:statusRestoringFacesCodeFormer")
 
                     progress.set_current_status_has_steps(False)
-                    self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
+                    self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=req_sid)
                     eventlet.sleep(0)
 
                     if facetool_parameters["type"] == "gfpgan":
@@ -1174,7 +1188,7 @@ class InvokeAIWebServer:
                     all_parameters["facetool_type"] = facetool_parameters["type"]
 
                 progress.set_current_status("common:statusSavingImage")
-                self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
+                self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=req_sid)
                 eventlet.sleep(0)
 
                 # restore the stashed URLS and discard the paths, we are about to send the result to client
@@ -1225,7 +1239,7 @@ class InvokeAIWebServer:
                 else:
                     progress.mark_complete()
 
-                self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
+                self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=req_sid)
                 eventlet.sleep(0)
 
                 parsed_prompt, _ = get_prompt_structure(generation_parameters["prompt"])
@@ -1249,7 +1263,7 @@ class InvokeAIWebServer:
                         "attentionMaps": attention_maps_image_base64_url,
                         "tokens": tokens,
                     },
-                    to=request.sid
+                    to=req_sid
                 )
                 eventlet.sleep(0)
 
@@ -1262,11 +1276,15 @@ class InvokeAIWebServer:
                 else:
                     return image_progress(*cb_args, **kwargs)
 
-            self.generate.prompt2image(
-                **generation_parameters,
-                step_callback=diffusers_step_callback_adapter,
-                image_callback=image_done
-            )
+            if self.image_gen_semaphore.balance <= self.max_waiters:
+                raise Exception("Too many concurrent requests. Please try again later.")
+
+            with self.image_gen_semaphore:
+                self.generate.prompt2image(
+                    **generation_parameters,
+                    step_callback=diffusers_step_callback_adapter,
+                    image_callback=image_done
+                )
 
         except KeyboardInterrupt:
             # Clear the CUDA cache on an exception

@@ -246,6 +246,16 @@ const makeSocketIOListeners = (
         );
         dispatch(errorOccurred());
         dispatch(clearIntermediateImage());
+
+        dispatch(
+          addToast({
+            title: `Server error: ${message}`,
+            status: "warning",
+            duration: null,
+            isClosable: true,
+          })
+        );
+
       } catch (e) {
         console.error(e);
       }
