@@ -16,7 +16,8 @@ import ModelManagerModal from './ModelManager/ModelManagerModal';
 import LanguagePicker from './LanguagePicker';
 
 import { useTranslation } from 'react-i18next';
-import { MdSettings } from 'react-icons/md';
+import { MdSettings, MdPanTool } from 'react-icons/md';
+import WelcomeModal from './WelcomeModal/WelcomeModal';
 
 /**
  * Header, includes color mode toggle, settings button, status message.
@@ -119,6 +120,18 @@ const SiteHeader = () => {
             icon={<MdSettings />}
           />
         </SettingsModal>
+
+        <WelcomeModal>
+          <IAIIconButton
+            aria-label={'Welcome'}
+            tooltip={'Welcome'}
+            variant="link"
+            data-variant="link"
+            fontSize={22}
+            size={'sm'}
+            icon={<MdPanTool />}
+          />
+        </WelcomeModal>
       </div>
     </div>
   );
