@@ -32,6 +32,9 @@ export interface GenerationState {
   tileSize: number;
   variationAmount: number;
   width: number;
+  shouldUseCanvasBetaLayout: boolean;
+  shouldShowExistingModelsInSearch: boolean;
+  isWelcomeModalOpen: boolean;
 }
 
 const initialGenerationState: GenerationState = {
@@ -60,6 +63,7 @@ const initialGenerationState: GenerationState = {
   tileSize: 32,
   variationAmount: 0.1,
   width: 512,
+  isWelcomeModalOpen: true,
 };
 
 const initialState: GenerationState = initialGenerationState;
@@ -316,6 +320,9 @@ export const generationSlice = createSlice({
     setInfillMethod: (state, action: PayloadAction<string>) => {
       state.infillMethod = action.payload;
     },
+    setWelcomeModal: (state, action: PayloadAction<boolean>) => {
+      state.isWelcomeModalOpen = action.payload;
+    },
   },
 });
 
@@ -353,6 +360,8 @@ export const {
   setTileSize,
   setVariationAmount,
   setWidth,
+  setWelcomeModal,
 } = generationSlice.actions;
+
 
 export default generationSlice.reducer;
