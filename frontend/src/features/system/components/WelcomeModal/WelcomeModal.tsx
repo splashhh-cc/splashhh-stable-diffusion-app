@@ -1,7 +1,5 @@
 import {
   Button,
-  Flex,
-  Heading,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -11,60 +9,35 @@ import {
   ModalOverlay,
   Text,
   Center,
-  useDisclosure,
 } from '@chakra-ui/react';
 import { createSelector } from '@reduxjs/toolkit';
-import _, { isEqual } from 'lodash';
-import React, { ChangeEvent, cloneElement, ReactElement } from 'react';
-import { RootState } from 'app/store';
-import { useAppDispatch, useAppSelector } from 'app/storeHooks';
-import { persistor } from 'persistor';
-import {
-  InProgressImageType,
-  setEnableImageDebugging,
-  setSaveIntermediatesInterval,
-  setShouldConfirmOnDelete,
-  setShouldDisplayGuides,
-  setShouldDisplayInProgressType,
-} from 'features/system/store/systemSlice';
+import _ from 'lodash';
 
-import { systemSelector } from 'features/system/store/systemSelectors';
+import React, { cloneElement, ReactElement } from 'react';
+
+import { useAppDispatch, useAppSelector } from 'app/storeHooks';
 import { optionsSelector } from 'features/options/store/optionsSelectors';
-import { setShouldUseCanvasBetaLayout } from 'features/options/store/optionsSlice';
-import { useTranslation } from 'react-i18next';
+import { setWelcomeModal } from 'features/options/store/optionsSlice';
+import IAIIconButton from 'common/components/IAIIconButton';
+import { FaExpandArrowsAlt } from 'react-icons/fa';
 
 import TextToImage from 'assets/images/Text-to-Image.webp';
 import ImageToImage from 'assets/images/Image-to-Image.webp';
 import UpscaleImg from 'assets/images/Upscale.webp';
-import IAIIconButton from '../../../../common/components/IAIIconButton';
-import { FaExpandArrowsAlt } from 'react-icons/fa';
 
 const selector = createSelector(
-  [systemSelector, optionsSelector],
-  (system, options) => {
-    const {
-      shouldDisplayInProgressType,
-      shouldConfirmOnDelete,
-      shouldDisplayGuides,
-      model_list,
-      saveIntermediatesInterval,
-      enableImageDebugging,
-    } = system;
-
-    const { shouldUseCanvasBetaLayout } = options;
+  [optionsSelector],
+  (options) => {
+    const { isWelcomeModalOpen } = options;
 
     return {
-      shouldDisplayInProgressType,
-      shouldConfirmOnDelete,
-      shouldDisplayGuides,
-      models: _.map(model_list, (_model, key) => key),
-      saveIntermediatesInterval,
-      enableImageDebugging,
-      shouldUseCanvasBetaLayout,
+      isWelcomeModalOpen,
     };
   },
   {
-    memoizeOptions: { resultEqualityCheck: isEqual },
+    memoizeOptions: {
+      resultEqualityCheck: _.isEqual,
+    },
   }
 );
 
@@ -81,42 +54,26 @@ type WelcomeModalProps = {
  */
 const WelcomeModal = ({ children }: WelcomeModalProps) => {
   const dispatch = useAppDispatch();
-  const { t } = useTranslation();
 
-  const {
-    isOpen: isSettingsModalOpen,
-    onOpen: onSettingsModalOpen,
-    onClose: onSettingsModalClose,
-  } = useDisclosure();
+  const { isWelcomeModalOpen } = useAppSelector(selector);
 
-  const {
-    isOpen: isRefreshModalOpen,
-    onOpen: onRefreshModalOpen,
-    onClose: onRefreshModalClose,
-  } = useDisclosure();
+  const onWelcomeModalClose = () => {
+    dispatch(setWelcomeModal(false));
+  };
 
-  const { enableImageDebugging } = useAppSelector(selector);
-
-  /**
-   * Resets localstorage, then opens a secondary modal informing user to
-   * refresh their browser.
-   * */
-  const handleClickResetWebUI = () => {
-    persistor.purge().then(() => {
-      onSettingsModalClose();
-      onRefreshModalOpen();
-    });
+  const onWelcomeModalOpen = () => {
+    dispatch(setWelcomeModal(true));
   };
 
   return (
     <>
       {cloneElement(children, {
-        onClick: onSettingsModalOpen,
+        onClick: onWelcomeModalOpen,
       })}
 
       <Modal
-        isOpen={isSettingsModalOpen}
-        onClose={onSettingsModalClose}
+        isOpen={isWelcomeModalOpen}
+        onClose={onWelcomeModalClose}
         size="lg"
       >
         <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(40px)" />
@@ -127,7 +84,9 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
           <ModalCloseButton className="modal-close-btn" />
           <ModalBody className="settings-modal-content">
             <div className="settings-modal-items">
-              <h1 style={{ fontWeight: 'bold' }}>Things to try:</h1>
+              <h1 style={{ fontWeight: 'bold' }}>
+                Welcome to Splashhh. Things to try:
+              </h1>
               <h2 style={{ fontWeight: 'bold' }}>1. Text-to-Image:</h2>
               <Text>
                 {
@@ -183,7 +142,7 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
           </ModalBody>
 
           <ModalFooter>
-            <Button onClick={onSettingsModalClose} className="modal-close-btn">
+            <Button onClick={onWelcomeModalClose} className="modal-close-btn">
               {'Begin'}
             </Button>
           </ModalFooter>

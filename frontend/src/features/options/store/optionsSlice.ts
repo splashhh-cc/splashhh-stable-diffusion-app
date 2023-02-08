@@ -57,6 +57,7 @@ export interface OptionsState {
   width: number;
   shouldUseCanvasBetaLayout: boolean;
   shouldShowExistingModelsInSearch: boolean;
+  isWelcomeModalOpen: boolean;
 }
 
 const initialOptionsState: OptionsState = {
@@ -105,6 +106,7 @@ const initialOptionsState: OptionsState = {
   width: 512,
   shouldUseCanvasBetaLayout: false,
   shouldShowExistingModelsInSearch: false,
+  isWelcomeModalOpen: true,
 };
 
 const initialState: OptionsState = initialOptionsState;
@@ -412,6 +414,9 @@ export const optionsSlice = createSlice({
     ) => {
       state.shouldShowExistingModelsInSearch = action.payload;
     },
+    setWelcomeModal: (state, action: PayloadAction<boolean>) => {
+      state.isWelcomeModalOpen = action.payload;
+    },
   },
 });
 
@@ -469,6 +474,7 @@ export const {
   setWidth,
   setShouldUseCanvasBetaLayout,
   setShouldShowExistingModelsInSearch,
+  setWelcomeModal,
 } = optionsSlice.actions;
 
 export default optionsSlice.reducer;
