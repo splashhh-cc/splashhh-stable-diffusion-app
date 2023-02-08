@@ -68,7 +68,7 @@ const initialOptionsState: OptionsState = {
   facetoolType: 'gfpgan',
   height: 512,
   hiresFix: false,
-  img2imgStrength: 0.75,
+  img2imgStrength: 0.5,
   infillMethod: 'patchmatch',
   isLightBoxOpen: false,
   iterations: 1,
