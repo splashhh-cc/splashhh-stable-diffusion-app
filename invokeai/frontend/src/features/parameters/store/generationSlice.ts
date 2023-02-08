@@ -4,6 +4,7 @@ import * as InvokeAI from 'app/invokeai';
 import { getPromptAndNegative } from 'common/util/getPromptAndNegative';
 import promptToString from 'common/util/promptToString';
 import { seedWeightsToString } from 'common/util/seedWeightPairs';
+import prompts from 'app/prompts';
 
 export interface GenerationState {
   cfgScale: number;
@@ -45,7 +46,7 @@ const initialGenerationState: GenerationState = {
   iterations: 1,
   maskPath: '',
   perlin: 0,
-  prompt: '',
+  prompt: prompts[Math.floor(Math.random() * prompts.length)],
   negativePrompt: '',
   sampler: 'k_lms',
   seamBlur: 16,
@@ -362,6 +363,5 @@ export const {
   setWidth,
   setWelcomeModal,
 } = generationSlice.actions;
-
 
 export default generationSlice.reducer;
