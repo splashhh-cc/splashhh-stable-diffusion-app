@@ -5,6 +5,7 @@ import promptToString from 'common/util/promptToString';
 import { seedWeightsToString } from 'common/util/seedWeightPairs';
 import { FACETOOL_TYPES } from 'app/constants';
 import { InvokeTabName, tabMap } from 'features/tabs/tabMap';
+import prompts from 'app/prompts';
 
 export type UpscalingLevel = 2 | 4;
 
@@ -76,7 +77,7 @@ const initialOptionsState: OptionsState = {
   maskPath: '',
   optionsPanelScrollPosition: 0,
   perlin: 0,
-  prompt: '',
+  prompt: prompts[Math.floor(Math.random() * prompts.length)],
   sampler: 'k_lms',
   seamBlur: 16,
   seamless: false,
