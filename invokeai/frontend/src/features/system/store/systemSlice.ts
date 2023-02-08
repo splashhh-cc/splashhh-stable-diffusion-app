@@ -55,6 +55,7 @@ export interface SystemState
   user_id: string;
   challenge: Challenge | null;
   max_limits: MaxLimits;
+  isWelcomeModalOpen: boolean;
 }
 
 const initialSystemState: SystemState = {
@@ -105,6 +106,7 @@ const initialSystemState: SystemState = {
       hires_fix: false,
     },
   },
+  isWelcomeModalOpen: true,
 };
 
 export const systemSlice = createSlice({
@@ -269,6 +271,9 @@ export const systemSlice = createSlice({
     setMaxLimits: (state, action: PayloadAction<InvokeAI.MaxLimits>) => {
       state.max_limits = action.payload;
     },
+    setWelcomeModal: (state, action: PayloadAction<boolean>) => {
+      state.isWelcomeModalOpen = action.payload;
+    },
   },
 });
 
@@ -303,6 +308,7 @@ export const {
   setUserId,
   setChallenge,
   setMaxLimits,
+  setWelcomeModal,
 } = systemSlice.actions;
 
 export default systemSlice.reducer;

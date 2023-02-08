@@ -13,11 +13,11 @@ import {
 import { createSelector } from '@reduxjs/toolkit';
 import _ from 'lodash';
 
-import React, { cloneElement, ReactElement } from 'react';
+import { cloneElement, ReactElement } from 'react';
 
 import { useAppDispatch, useAppSelector } from 'app/storeHooks';
-import { optionsSelector } from 'features/options/store/optionsSelectors';
-import { setWelcomeModal } from 'features/options/store/optionsSlice';
+import { systemSelector } from 'features/system/store/systemSelectors';
+import { setWelcomeModal } from 'features/system/store/systemSlice';
 import IAIIconButton from 'common/components/IAIIconButton';
 import { FaExpandArrowsAlt } from 'react-icons/fa';
 
@@ -26,7 +26,7 @@ import ImageToImage from 'assets/images/Image-to-Image.webp';
 import UpscaleImg from 'assets/images/Upscale.webp';
 
 const selector = createSelector(
-  [optionsSelector],
+  [systemSelector],
   (options) => {
     const { isWelcomeModalOpen } = options;
 

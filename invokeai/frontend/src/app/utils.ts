@@ -29,7 +29,7 @@ export function keepGUIAlive() {
 
 // get a fresh challenge from the server
 export async function getChallenge(): Promise<InvokeAI.Challenge> {
-  const response = await fetch(window.location.origin + '/get_challenge', {
+  const response = await fetch(`${window.location.origin}/get_challenge`, {
     method: 'GET',
   });
 
