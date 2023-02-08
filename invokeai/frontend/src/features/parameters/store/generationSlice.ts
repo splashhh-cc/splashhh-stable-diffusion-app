@@ -33,8 +33,6 @@ export interface GenerationState {
   tileSize: number;
   variationAmount: number;
   width: number;
-  shouldUseCanvasBetaLayout: boolean;
-  shouldShowExistingModelsInSearch: boolean;
   isWelcomeModalOpen: boolean;
 }
 
