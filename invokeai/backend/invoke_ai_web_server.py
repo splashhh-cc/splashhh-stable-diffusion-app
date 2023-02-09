@@ -1,4 +1,5 @@
 import base64
+import csv
 import glob
 import io
 import json
@@ -7,6 +8,7 @@ import mimetypes
 import os
 import shutil
 import traceback
+from datetime import datetime
 from threading import Event
 from uuid import uuid4
 
@@ -687,10 +689,10 @@ class InvokeAIWebServer:
 
         @socketio.on("generateImage")
         def handle_generate_image_event(
-            generation_parameters, esrgan_parameters, facetool_parameters, user_id: str = '', solvedChallenge: dict = None
+            generation_parameters, esrgan_parameters, facetool_parameters, user_id: str = '', solved_challenge: dict = None
         ):
             try:
-                verify_challenge_solution(session, solvedChallenge)
+                verify_challenge_solution(session, solved_challenge)
 
                 if user_id != secure_filename(user_id):
                     raise ValueError("Invalid user_id")
@@ -731,13 +733,15 @@ class InvokeAIWebServer:
                 print("\n")
 
         @socketio.on("runPostprocessing")
-        def handle_run_postprocessing(original_image, postprocessing_parameters, user_id: str = '', solvedChallenge: dict = None
-        ):
+        def handle_run_postprocessing(original_image, postprocessing_parameters, user_id: str = '', solved_challenge: dict = None
+                                      ):
             try:
                 print(
                     f'>> Postprocessing requested for "{original_image["url"]}": {postprocessing_parameters}'
                 )
-                verify_challenge_solution(session, solvedChallenge)
+                verify_challenge_solution(session, solved_challenge)
+
+                analytics = init_analytics_post_item(postprocessing_parameters)
 
                 if user_id != secure_filename(user_id):
                     raise ValueError("Invalid user_id")
@@ -774,8 +778,14 @@ class InvokeAIWebServer:
                 eventlet.sleep(0)
 
                 if self.image_gen_semaphore.balance <= self.max_waiters:
+                    analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
+                    write_analytics(analytics)
                     raise Exception("Too many concurrent requests. Please try again later.")
+
                 with self.image_gen_semaphore:
+                    analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
+                    analytics["process_time_sec"] = time.time()
+
                     if postprocessing_parameters["type"] == "esrgan":
                         image = self.esrgan.process(
                             image=image,
@@ -803,6 +813,10 @@ class InvokeAIWebServer:
                         raise TypeError(
                             f'{postprocessing_parameters["type"]} is not a valid postprocessing type'
                         )
+
+                    analytics["is_served"] = True
+                    analytics["process_time_sec"] = round(time.time() - analytics["process_time_sec"], 2)
+                    write_analytics(analytics)
 
                 progress.set_current_status("common:statusSavingImage")
                 socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
@@ -916,6 +930,8 @@ class InvokeAIWebServer:
                 raise ValueError("Invalid user_id")
 
             req_sid = request.sid
+
+            analytics: dict = init_analytics_gen_item(generation_parameters, esrgan_parameters, facetool_parameters)
 
             self.canceled.clear()
 
@@ -1318,14 +1334,23 @@ class InvokeAIWebServer:
                     return image_progress(*cb_args, **kwargs)
 
             if self.image_gen_semaphore.balance <= self.max_waiters:
+                analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
+                write_analytics(analytics)
                 raise Exception("Too many concurrent requests. Please try again later.")
 
             with self.image_gen_semaphore:
+                analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
+                analytics["process_time_sec"] = time.time()
+
                 self.generate.prompt2image(
                     **generation_parameters,
                     step_callback=diffusers_step_callback_adapter,
                     image_callback=image_done
                 )
+
+                analytics["is_served"] = True
+                analytics["process_time_sec"] = round(time.time() - analytics["process_time_sec"], 2)
+                write_analytics(analytics)
 
         except KeyboardInterrupt:
             # Clear the CUDA cache on an exception
@@ -1879,6 +1904,7 @@ def save_thumbnail(
 
     return thumbnail_path
 
+
 # verify pow solution to a given challenge
 def verify_solution(challenge: str, solution: str, difficulty: int) -> bool:
     # the function should normalize a bytes array to a number between 0 and 1
@@ -1900,12 +1926,13 @@ def verify_solution(challenge: str, solution: str, difficulty: int) -> bool:
 
     return normalized_res < normalized_difficulty
 
+
 def verify_challenge_solution(session: dict, solved: dict) -> bool:
     # print('session: ', session)
     # print('solved: ', solved)
 
     try:
-        s_challenge: dict= session["challenge"]
+        s_challenge: dict = session["challenge"]
     except KeyError:
         raise ValueError("No challenge was found for the session.")
 
@@ -1922,3 +1949,65 @@ def verify_challenge_solution(session: dict, solved: dict) -> bool:
         raise ValueError("The provided solution for the challenge is not valid.")
 
     return True
+
+
+def analytics_base_item() -> dict:
+    return {
+        "req_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "is_served": False,  # possibly rejected, if the load is too high
+        "queue_wait_time_sec": time.time(),  # start counting time
+        "process_time_sec": 0.0,
+        "event": "gen",  # gen, post
+        "event_detail1": "F",  # gen, post
+        "event_detail2": "F",  # gen, post
+        "event_detail3": "F",  # gen, post
+        "agent": "m",
+        "solution_time_ms": 4
+    }
+
+
+def init_analytics_gen_item(generation_parameters, esrgan_parameters, facetool_parameters) -> dict:
+    item = item = analytics_base_item()
+    item["event"] = "gen"
+    item["event_detail1"] = generation_parameters["generation_mode"]
+    item["event_detail2"] = esrgan_parameters["level"] if esrgan_parameters else "F"
+    item["event_detail3"] = facetool_parameters["type"] if facetool_parameters else "F"
+
+    return item
+
+
+def init_analytics_post_item(postprocessing_parameters) -> dict:
+    item = analytics_base_item()
+    item["event"] = "post"
+    item["event_detail1"] = postprocessing_parameters["type"] if postprocessing_parameters else "F"
+    return item
+
+
+def write_analytics(item):
+    # Write analytics to CSV file
+    filename = './analytics.csv'
+    fieldnames = ['req_time', 'is_served', 'queue_wait_time_sec', 'process_time_sec', 'event', 'event_detail1', 'event_detail2', 'event_detail3', 'agent', 'solution_time_ms']
+
+    if not os.path.exists(filename):
+        with open(filename, 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
+    with open(filename, 'a', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writerow(item)
+
+    #     SQLITE table to store analytics:
+    #     CREATE TABLE analytics (
+    #         req_time TEXT,
+    #         is_served INTEGER,
+    #         queue_wait_time_sec REAL,
+    #         process_time_sec REAL,
+    #         event TEXT,
+    #         event_detail1 TEXT,
+    #         event_detail2 TEXT,
+    #         event_detail3 TEXT,
+    #         agent TEXT,
+    #         solution_time_ms INTEGER
+    #     );
+
