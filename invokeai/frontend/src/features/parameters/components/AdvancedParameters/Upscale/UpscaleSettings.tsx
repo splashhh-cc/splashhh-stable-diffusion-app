@@ -19,11 +19,15 @@ import { useTranslation } from 'react-i18next';
 const parametersSelector = createSelector(
   [postprocessingSelector, systemSelector],
 
-  ({ upscalingLevel, upscalingStrength }, { isESRGANAvailable }) => {
+  (
+    { upscalingLevel, upscalingStrength },
+    { isESRGANAvailable, max_limits }
+  ) => {
     return {
       upscalingLevel,
       upscalingStrength,
       isESRGANAvailable,
+      max_limits,
     };
   },
   {
@@ -38,11 +42,10 @@ const parametersSelector = createSelector(
  */
 const UpscaleSettings = () => {
   const dispatch = useAppDispatch();
-  const { upscalingLevel, upscalingStrength, isESRGANAvailable } =
+  const { upscalingLevel, upscalingStrength, isESRGANAvailable, max_limits } =
     useAppSelector(parametersSelector);
 
   const { t } = useTranslation();
-  const { max_limits } = useAppSelector((state: RootState) => state.system);
 
   const handleChangeLevel = (e: ChangeEvent<HTMLSelectElement>) =>
     dispatch(setUpscalingLevel(Number(e.target.value) as UpscalingLevel));
