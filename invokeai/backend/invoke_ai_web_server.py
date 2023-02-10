@@ -23,7 +23,7 @@ from flask import Flask, redirect, send_from_directory, request, make_response, 
 from flask_socketio import SocketIO
 from werkzeug.utils import secure_filename
 from eventlet.semaphore import Semaphore
-from hashlib import pbkdf2_hmac
+from hashlib import pbkdf2_hmac, shake_256
 
 from invokeai.backend.modules.get_canvas_generation_mode import (
     get_canvas_generation_mode,
@@ -741,7 +741,7 @@ class InvokeAIWebServer:
                 )
                 verify_challenge_solution(session, solved_challenge)
 
-                analytics = init_analytics_post_item(postprocessing_parameters)
+                analytics = init_analytics_post_item(postprocessing_parameters, user_id)
 
                 if user_id != secure_filename(user_id):
                     raise ValueError("Invalid user_id")
@@ -779,7 +779,7 @@ class InvokeAIWebServer:
 
                 if self.image_gen_semaphore.balance <= self.max_waiters:
                     analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
-                    write_analytics(analytics)
+                    write_analytics(self.result_path,analytics)
                     raise Exception("Too many concurrent requests. Please try again later.")
 
                 with self.image_gen_semaphore:
@@ -816,7 +816,7 @@ class InvokeAIWebServer:
 
                     analytics["is_served"] = True
                     analytics["process_time_sec"] = round(time.time() - analytics["process_time_sec"], 2)
-                    write_analytics(analytics)
+                    write_analytics(self.result_path,analytics)
 
                 progress.set_current_status("common:statusSavingImage")
                 socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
@@ -931,7 +931,7 @@ class InvokeAIWebServer:
 
             req_sid = request.sid
 
-            analytics: dict = init_analytics_gen_item(generation_parameters, esrgan_parameters, facetool_parameters)
+            analytics: dict = init_analytics_gen_item(generation_parameters, esrgan_parameters, facetool_parameters, user_id)
 
             self.canceled.clear()
 
@@ -1335,7 +1335,7 @@ class InvokeAIWebServer:
 
             if self.image_gen_semaphore.balance <= self.max_waiters:
                 analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
-                write_analytics(analytics)
+                write_analytics(self.result_path,analytics)
                 raise Exception("Too many concurrent requests. Please try again later.")
 
             with self.image_gen_semaphore:
@@ -1350,7 +1350,7 @@ class InvokeAIWebServer:
 
                 analytics["is_served"] = True
                 analytics["process_time_sec"] = round(time.time() - analytics["process_time_sec"], 2)
-                write_analytics(analytics)
+                write_analytics(self.result_path,analytics)
 
         except KeyboardInterrupt:
             # Clear the CUDA cache on an exception
@@ -1957,36 +1957,42 @@ def analytics_base_item() -> dict:
         "is_served": False,  # possibly rejected, if the load is too high
         "queue_wait_time_sec": time.time(),  # start counting time
         "process_time_sec": 0.0,
+        "img_num": 1,  # number of images to generate
         "event": "gen",  # gen, post
         "event_detail1": "F",  # gen, post
         "event_detail2": "F",  # gen, post
         "event_detail3": "F",  # gen, post
         "agent": "m",
-        "solution_time_ms": 4
+        "solution_time_ms": 4,
+        "user_id": "uid"
     }
 
 
-def init_analytics_gen_item(generation_parameters, esrgan_parameters, facetool_parameters) -> dict:
+def init_analytics_gen_item(generation_parameters, esrgan_parameters, facetool_parameters, user_id: str) -> dict:
     item = item = analytics_base_item()
+    item["img_num"] = generation_parameters["iterations"]
     item["event"] = "gen"
     item["event_detail1"] = generation_parameters["generation_mode"]
     item["event_detail2"] = esrgan_parameters["level"] if esrgan_parameters else "F"
     item["event_detail3"] = facetool_parameters["type"] if facetool_parameters else "F"
+    item["user_id"] = shake_256(user_id.encode()).hexdigest(8)
 
     return item
 
 
-def init_analytics_post_item(postprocessing_parameters) -> dict:
+def init_analytics_post_item(postprocessing_parameters, user_id: str) -> dict:
     item = analytics_base_item()
     item["event"] = "post"
     item["event_detail1"] = postprocessing_parameters["type"] if postprocessing_parameters else "F"
+    item["user_id"] = shake_256(user_id.encode()).hexdigest(8)
+
     return item
 
 
-def write_analytics(item):
+def write_analytics(result_path, item):
     # Write analytics to CSV file
-    filename = './analytics.csv'
-    fieldnames = ['req_time', 'is_served', 'queue_wait_time_sec', 'process_time_sec', 'event', 'event_detail1', 'event_detail2', 'event_detail3', 'agent', 'solution_time_ms']
+    filename = os.path.join(result_path, './analytics.csv')
+    fieldnames = ['req_time', 'is_served', 'queue_wait_time_sec', 'process_time_sec', 'img_num', 'event', 'event_detail1', 'event_detail2', 'event_detail3', 'agent', 'solution_time_ms', 'user_id']
 
     if not os.path.exists(filename):
         with open(filename, 'w', newline='') as csvfile:
@@ -2003,11 +2009,13 @@ def write_analytics(item):
     #         is_served INTEGER,
     #         queue_wait_time_sec REAL,
     #         process_time_sec REAL,
+    #         img_num INTEGER,
     #         event TEXT,
     #         event_detail1 TEXT,
     #         event_detail2 TEXT,
     #         event_detail3 TEXT,
     #         agent TEXT,
     #         solution_time_ms INTEGER
+    #         user_id TEXT
     #     );
 
