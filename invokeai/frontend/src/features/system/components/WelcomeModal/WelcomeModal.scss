@@ -1,25 +1,26 @@
 @use '../../../../styles/Mixins/' as *;
 
-.settings-modal {
-  max-height: 36rem;
-  font-family: Inter;
+.welcome-modal {
+  max-height: 50rem;
+  max-width: 50rem;
+  //font-family: Inter;
 
-  .settings-modal-content {
+  .welcome-modal-content {
     display: grid;
     row-gap: 2rem;
     overflow-y: scroll;
   }
 
-  .settings-modal-header {
+  .welcome-modal-header {
     font-weight: bold;
     align-items: center;
   }
 
-  .settings-modal-items {
+  .welcome-modal-items {
     display: grid;
     row-gap: 0.5rem;
 
-    .settings-modal-item {
+    .welcome-modal-item {
       display: grid;
       grid-auto-flow: column;
       background-color: var(--background-color);
@@ -30,7 +31,7 @@
     }
   }
 
-  .settings-modal-reset {
+  .welcome-modal-reset {
     display: grid;
     row-gap: 1rem;
 

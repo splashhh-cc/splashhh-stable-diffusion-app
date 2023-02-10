@@ -42,15 +42,13 @@ const selector = createSelector(
 );
 
 type WelcomeModalProps = {
-  /* The button to open the Settings Modal */
+  /* The button to open the welcome Modal */
   children: ReactElement;
 };
 
 /**
- * Modal for app settings. Also provides Reset functionality in which the
- * app's localstorage is wiped via redux-persist.
+ * Modal for app welcome.
  *
- * Secondary post-reset modal is included here.
  */
 const WelcomeModal = ({ children }: WelcomeModalProps) => {
   const dispatch = useAppDispatch();
@@ -77,16 +75,18 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
         size="lg"
       >
         <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(40px)" />
-        <ModalContent className="modal settings-modal">
-          <ModalHeader className="settings-modal-header">
+        <ModalContent className="modal welcome-modal">
+          <ModalHeader className="welcome-modal-header">
             {'Splashhh - Generative Ai app'}
           </ModalHeader>
           <ModalCloseButton className="modal-close-btn" />
-          <ModalBody className="settings-modal-content">
-            <div className="settings-modal-items">
+          <ModalBody className="welcome-modal-content">
+            <div className="welcome-modal-items">
               <h1 style={{ fontWeight: 'bold' }}>
                 Welcome to Splashhh. Things to try:
               </h1>
+              <br />
+              <br />
               <h2 style={{ fontWeight: 'bold' }}>1. Text-to-Image:</h2>
               <Text>
                 {
@@ -100,11 +100,13 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
                   alt="invoke-ai-logo"
                   style={{
                     width: 'auto',
-                    height: '150px',
+                    height: '200px',
                     alignItems: 'center',
                   }}
                 />
               </Center>
+              <br />
+              <br />
               <h2 style={{ fontWeight: 'bold' }}>2. Image-to-Image:</h2>
               <Text>
                 {
@@ -115,9 +117,13 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
                 <img
                   src={ImageToImage}
                   alt="invoke-ai-logo"
-                  style={{ width: 'auto', height: '150px' }}
+                  style={{ width: 'auto', height: '200px' }}
                 />
               </Center>
+              <br />
+              <br />
+              <br />
+              <br />
               <h2 style={{ fontWeight: 'bold' }}>3. Upscale:</h2>
               <Text>
                 <IAIIconButton
@@ -135,7 +141,7 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
                 <img
                   src={UpscaleImg}
                   alt="invoke-ai-logo"
-                  style={{ width: 'auto', height: '150px' }}
+                  style={{ width: 'auto', height: '200px' }}
                 />
               </Center>
             </div>
