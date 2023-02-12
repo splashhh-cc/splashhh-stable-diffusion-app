@@ -791,7 +791,7 @@ class InvokeAIWebServer:
                         image = self.esrgan.process(
                             image=image,
                             upsampler_scale=postprocessing_parameters["upscale"][0],
-                            denoise_str=postprocessing_parameters["upscale"][1],
+                            # denoise_str=postprocessing_parameters["upscale"][1],
                             strength=postprocessing_parameters["upscale"][2],
                             seed=seed,
                         )
