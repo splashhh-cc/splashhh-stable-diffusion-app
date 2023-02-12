@@ -1,13 +1,14 @@
 import { Flex, Link, Text } from '@chakra-ui/react';
 
-import { FaBug, FaCube, FaDiscord, FaGithub, FaKeyboard } from 'react-icons/fa';
+// import { FaBug, FaCube, FaDiscord, FaGithub, FaKeyboard } from 'react-icons/fa';
+import { FaBug, FaDiscord, FaGithub, FaKeyboard } from 'react-icons/fa';
 
 import InvokeAILogo from 'assets/images/logo.png';
 import IAIIconButton from 'common/components/IAIIconButton';
 
 import HotkeysModal from './HotkeysModal/HotkeysModal';
 
-import ModelManagerModal from './ModelManager/ModelManagerModal';
+// import ModelManagerModal from './ModelManager/ModelManagerModal';
 import ModelSelect from './ModelSelect';
 import SettingsModal from './SettingsModal/SettingsModal';
 import StatusIndicator from './StatusIndicator';
@@ -53,7 +54,7 @@ const SiteHeader = () => {
 
         <ModelSelect />
 
-        <ModelManagerModal>
+        {/*<ModelManagerModal>
           <IAIIconButton
             aria-label={t('modelmanager:modelManager')}
             tooltip={t('modelmanager:modelManager')}
@@ -63,7 +64,7 @@ const SiteHeader = () => {
             fontSize={20}
             icon={<FaCube />}
           />
-        </ModelManagerModal>
+        </ModelManagerModal>*/}
 
         <HotkeysModal>
           <IAIIconButton

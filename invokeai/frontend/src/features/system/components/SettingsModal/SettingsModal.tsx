@@ -143,6 +143,7 @@ const SettingsModal = ({ children }: SettingsModalProps) => {
                 style={{ gridAutoFlow: 'row', rowGap: '0.5rem' }}
               >
                 <IAISelect
+                  isDisabled={true}
                   label={t('settings:displayInProgress')}
                   validValues={IN_PROGRESS_IMAGE_TYPES}
                   value={shouldDisplayInProgressType}
@@ -168,6 +169,7 @@ const SettingsModal = ({ children }: SettingsModalProps) => {
                 )}
               </div>
               <IAISwitch
+                isDisabled={true}
                 styleClass="settings-modal-item"
                 label={t('settings:confirmOnDelete')}
                 isChecked={shouldConfirmOnDelete}
@@ -196,6 +198,7 @@ const SettingsModal = ({ children }: SettingsModalProps) => {
             <div className="settings-modal-items">
               <h2 style={{ fontWeight: 'bold' }}>Developer</h2>
               <IAISwitch
+                isDisabled={true}
                 styleClass="settings-modal-item"
                 label={t('settings:enableImageDebugging')}
                 isChecked={enableImageDebugging}
@@ -207,7 +210,11 @@ const SettingsModal = ({ children }: SettingsModalProps) => {
 
             <div className="settings-modal-reset">
               <Heading size={'md'}>{t('settings:resetWebUI')}</Heading>
-              <Button colorScheme="red" onClick={handleClickResetWebUI}>
+              <Button
+                isDisabled={true}
+                colorScheme="red"
+                onClick={handleClickResetWebUI}
+              >
                 {t('settings:resetWebUI')}
               </Button>
               <Text>{t('settings:resetWebUIDesc1')}</Text>

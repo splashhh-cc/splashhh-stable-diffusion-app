@@ -54,7 +54,7 @@ export default function CancelButton(
       icon={<MdCancel />}
       tooltip={t('parameters:cancel')}
       aria-label={t('parameters:cancel')}
-      isDisabled={!isConnected || !isProcessing || !isCancelable}
+      isDisabled={true || !isConnected || !isProcessing || !isCancelable}
       onClick={handleClickCancel}
       styleClass="cancel-btn"
       {...rest}

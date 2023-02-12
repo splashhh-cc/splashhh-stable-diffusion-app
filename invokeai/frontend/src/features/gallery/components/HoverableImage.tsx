@@ -212,7 +212,7 @@ const HoverableImage = memo((props: HoverableImageProps) => {
                   size="xs"
                   variant={'imageHoverIconButton'}
                   fontSize={14}
-                  isDisabled={!mayDeleteImage}
+                  isDisabled={true || !mayDeleteImage}
                 />
               </DeleteImageModal>
             </div>
