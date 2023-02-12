@@ -857,6 +857,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#unsupported-conda-install" class="md-nav__link">
+    Unsupported Conda Install
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1231,30 +1238,35 @@ already be installed (if, for example, you have used your system for
 gaming):</p>
 <ul>
 <li>
-<p><strong>Python</strong> version 3.9 or 3.10 (3.11 is not recommended).</p>
+<p><strong>Python</strong></p>
+<p>version 3.9 or 3.10 (3.11 is not recommended).</p>
 </li>
 <li>
-<p><strong>CUDA Tools</strong> For those with <em>NVidia GPUs</em>, you will need to
-  install the <a href="../070_INSTALL_XFORMERS/">CUDA toolkit and optionally the XFormers library</a>.</p>
+<p><strong>CUDA Tools</strong></p>
+<p>For those with <em>NVidia GPUs</em>, you will need to
+install the <a href="../070_INSTALL_XFORMERS/">CUDA toolkit and optionally the XFormers library</a>.</p>
 </li>
 <li>
-<p><strong>ROCm Tools</strong> For <em>Linux users with AMD GPUs</em>, you will need
-   to install the <a href="../030_INSTALL_CUDA_AND_ROCM/">ROCm toolkit</a>. Note that
-   InvokeAI does not support AMD GPUs on Windows systems due to
-   lack of a Windows ROCm library.</p>
+<p><strong>ROCm Tools</strong></p>
+<p>For <em>Linux users with AMD GPUs</em>, you will need
+to install the <a href="../030_INSTALL_CUDA_AND_ROCM/">ROCm toolkit</a>. Note that
+InvokeAI does not support AMD GPUs on Windows systems due to
+lack of a Windows ROCm library.</p>
 </li>
 <li>
-<p><strong>Visual C++ Libraries</strong> <em>Windows users</em> must install the free
-   <a href="https://learn.microsoft.com/en-US/cpp/windows/latest-supported-vc-redist?view=msvc-170">Visual C++ libraries from Microsoft</a></p>
+<p><strong>Visual C++ Libraries</strong></p>
+<p><em>Windows users</em> must install the free
+<a href="https://learn.microsoft.com/en-US/cpp/windows/latest-supported-vc-redist?view=msvc-170">Visual C++ libraries from Microsoft</a></p>
 </li>
 <li>
-<p><strong>The Xcode command line tools</strong> for <em>Macintosh users</em>. Instructions are
-  available at <a href="https://www.freecodecamp.org/news/install-xcode-command-line-tools/">Free Code Camp</a></p>
-</li>
-<li>
-<p><em>Macintosh users</em> may also need to run the <code>Install Certificates</code> command
+<p><strong>The Xcode command line tools</strong></p>
+<p>for <em>Macintosh users</em>. Instructions are available at
+<a href="https://www.freecodecamp.org/news/install-xcode-command-line-tools/">Free Code Camp</a></p>
+<ul>
+<li><em>Macintosh users</em> may also need to run the <code>Install Certificates</code> command
   if model downloads give lots of certificate errors. Run:
-  <code>/Applications/Python\ 3.10/Install\ Certificates.command</code></p>
+  <code>/Applications/Python\ 3.10/Install\ Certificates.command</code></li>
+</ul>
 </li>
 </ul>
 <h3 id="installation-walkthrough">Installation Walkthrough<a class="headerlink" href="#installation-walkthrough" title="Permanent link">#</a></h3>
@@ -1279,7 +1291,7 @@ path to <code>HOME/invokeai</code>.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Linux/Mac</label><label for="__tabbed_1_2">Windows (Powershell)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">INVOKEAI_ROOT</span><span class="o">=</span><span class="s2">&quot;~/invokeai&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">INVOKEAI_ROOT</span><span class="o">=</span>~/invokeai
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>mkdir<span class="w"> </span><span class="nv">$INVOKEAI_ROOT</span>
 </code></pre></div>
 </div>
@@ -1304,65 +1316,54 @@ path to <code>HOME/invokeai</code>.</p>
    example, by editing <code>~/.bashrc</code> or <code>~/.zshrc</code> files, or setting the
    Windows environment variable using the Advanced System Settings dialogue.
    Refer to your operating system documentation for details.</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Linux/Mac</label><label for="__tabbed_2_2">Windows</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span><span class="nv">$INVOKEAI_ROOT</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>create<span class="w"> </span>.venv
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cd $INVOKEAI_ROOT
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>python -m venv .venv --prompt InvokeAI
 </code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span><span class="nv">$INVOKEAI_ROOT</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>create<span class="w"> </span>.venv
-</code></pre></div>
-</div>
-</div>
-</div>
 </li>
 <li>
 <p>Activate the new environment:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Linux/Mac</label><label for="__tabbed_3_2">Windows</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Linux/Mac</label><label for="__tabbed_2_2">Windows</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>.venv<span class="se">\s</span>cript<span class="se">\a</span>ctivate
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>.venv\Scripts\activate
 </code></pre></div>
+<p>If you get a permissions error at this point, run this command and try again</p>
+<p><code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code></p>
 </div>
 </div>
 </div>
-<p>If you get a permissions error at this point, run the command
-<code>Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser</code>
-and try <code>activate</code> again.</p>
-<p>The command-line prompt should change to to show <code>(.venv)</code> at the
+<p>The command-line prompt should change to to show <code>(InvokeAI)</code> at the
 beginning of the prompt. Note that all the following steps should be
 run while inside the INVOKEAI_ROOT directory</p>
 </li>
 <li>
 <p>Make sure that pip is installed in your virtual environment and up to date:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
 </code></pre></div>
 </li>
 <li>
-<p>Install the InvokeAI Package. The <code>--extra-index-url</code> option is used to select among CUDA, ROCm and CPU/MPS drivers as shown below:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="4:4"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><input id="__tabbed_4_3" name="__tabbed_4" type="radio" /><input id="__tabbed_4_4" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">CUDA (NVidia)</label><label for="__tabbed_4_2">ROCm (AMD)</label><label for="__tabbed_4_3">CPU (Intel Macs &amp; non-GPU systems)</label><label for="__tabbed_4_4">MPS (M1 and M2 Macs)</label></div>
+<p>Install the InvokeAI Package. The <code>--extra-index-url</code> option is used to select among
+   CUDA, ROCm and CPU/MPS drivers as shown below:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:4"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><input id="__tabbed_3_3" name="__tabbed_3" type="radio" /><input id="__tabbed_3_4" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">CUDA (NVidia)</label><label for="__tabbed_3_2">ROCm (AMD)</label><label for="__tabbed_3_3">CPU (Intel Macs &amp; non-GPU systems)</label><label for="__tabbed_3_4">MPS (M1 and M2 Macs)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pip<span class="w"> </span>install<span class="w"> </span>InvokeAI<span class="o">[</span>xformers<span class="o">]</span><span class="w"> </span>--use-pep517<span class="w"> </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/cu117
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>pip<span class="w"> </span>install<span class="w"> </span>InvokeAI<span class="o">[</span>xformers<span class="o">]</span><span class="w"> </span>--use-pep517<span class="w"> </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/cu117
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>pip<span class="w"> </span>install<span class="w"> </span>InvokeAI<span class="w"> </span>--use-pep517<span class="w"> </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/rocm5.2
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pip<span class="w"> </span>install<span class="w"> </span>InvokeAI<span class="w"> </span>--use-pep517<span class="w"> </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/rocm5.2
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>pip<span class="w"> </span>install<span class="w"> </span>InvokeAI<span class="w"> </span>--use-pep517<span class="w"> </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>pip<span class="w"> </span>install<span class="w"> </span>InvokeAI<span class="w"> </span>--use-pep517<span class="w"> </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>pip<span class="w"> </span>install<span class="w"> </span>InvokeAI<span class="w"> </span>--use-pep517<span class="w">  </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>pip<span class="w"> </span>install<span class="w"> </span>InvokeAI<span class="w"> </span>--use-pep517
 </code></pre></div>
 </div>
 </div>
@@ -1371,20 +1372,19 @@ run while inside the INVOKEAI_ROOT directory</p>
 <li>
 <p>Deactivate and reactivate your runtime directory so that the invokeai-specific commands
     become available in the environment</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">Linux/Macintosh</label><label for="__tabbed_5_2">Windows</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Linux/Macintosh</label><label for="__tabbed_4_2">Windows</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>deactivate<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>deactivate<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<p>```bash
-deactivate</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>deactivate
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>.venv\Scripts\activate
+</code></pre></div>
 </div>
 </div>
 </div>
-<p>.venv\Scripts\activate
-    ```</p>
 </li>
 <li>
 <p>Set up the runtime directory</p>
@@ -1420,7 +1420,7 @@ INVOKEAI_ROOT, then you must specify the path to the root directory by adding</c
 <div class="admonition warning">
 <p class="admonition-title">Make sure that the virtual environment is activated, which should create <code>(.venv)</code> in front of your prompt!</p>
 </div>
-<div class="tabbed-set tabbed-alternate" data-tabs="6:3"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><input id="__tabbed_6_3" name="__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="__tabbed_6_1">CLI</label><label for="__tabbed_6_2">local Webserver</label><label for="__tabbed_6_3">Public Webserver</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="5:3"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><input id="__tabbed_5_3" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">CLI</label><label for="__tabbed_5_2">local Webserver</label><label for="__tabbed_5_3">Public Webserver</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>invokeai
@@ -1482,13 +1482,13 @@ code for InvokeAI. For this to work, you will need to install the
 on your system, please see the <a href="https://github.com/git-guides/install-git">Git Installation
 Guide</a></p>
 <ol>
-<li>From the command line, run this command:</li>
-</ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/invoke-ai/InvokeAI.git
-</code></pre></div>
+<li>
+<p>From the command line, run this command:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/invoke-ai/InvokeAI.git
+</code></pre></div></p>
 <p>This will create a directory named <code>InvokeAI</code> and populate it with the
 full source code from the InvokeAI repository.</p>
-<ol>
+</li>
 <li>
 <p>Activate the InvokeAI virtual environment as per step (4) of the manual
 installation protocol (important!)</p>
@@ -1496,7 +1496,7 @@ installation protocol (important!)</p>
 <li>
 <p>Enter the InvokeAI repository directory and run one of these
    commands, based on your GPU:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="7:4"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><input id="__tabbed_7_3" name="__tabbed_7" type="radio" /><input id="__tabbed_7_4" name="__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="__tabbed_7_1">CUDA (NVidia)</label><label for="__tabbed_7_2">ROCm (AMD)</label><label for="__tabbed_7_3">CPU (Intel Macs &amp; non-GPU systems)</label><label for="__tabbed_7_4">MPS (M1 and M2 Macs)</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="6:4"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><input id="__tabbed_6_3" name="__tabbed_6" type="radio" /><input id="__tabbed_6_4" name="__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="__tabbed_6_1">CUDA (NVidia)</label><label for="__tabbed_6_2">ROCm (AMD)</label><label for="__tabbed_6_3">CPU (Intel Macs &amp; non-GPU systems)</label><label for="__tabbed_6_4">MPS (M1 and M2 Macs)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="o">[</span>xformers<span class="o">]</span><span class="w"> </span>--use-pep517<span class="w"> </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/cu117
@@ -1511,7 +1511,7 @@ installation protocol (important!)</p>
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>--use-pep517<span class="w">  </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>--use-pep517
 </code></pre></div>
 </div>
 </div>
@@ -1528,17 +1528,35 @@ and watch the code's behavior change.</p>
     <a href="https://github.com/invoke-ai/InvokeAI">https://github.com/invoke-ai/InvokeAI</a> into your own copy of the
     repository. You can then use GitHub functions to create and submit
     pull requests to contribute improvements to the project.</p>
-<p>Please see <a href="/index.md#Contributing">Contributing</a> for hints
+<p>Please see <a href="../../#contributing">Contributing</a> for hints
 on getting started.</p>
 </li>
 </ol>
+<h3 id="unsupported-conda-install">Unsupported Conda Install<a class="headerlink" href="#unsupported-conda-install" title="Permanent link">#</a></h3>
+<p>Congratulations, you found the "secret" Conda installation
+instructions. If you really <strong>really</strong> want to use Conda with InvokeAI
+you can do so using this unsupported recipe:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>mkdir ~/invokeai
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>conda create -n invokeai python=3.10
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>conda activate invokeai
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>pip install InvokeAI[xformers] --use-pep517 --extra-index-url https://download.pytorch.org/whl/cu117
+<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>invokeai-configure --root ~/invokeai
+<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>invokeai --root ~/invokeai --web
+</code></pre></div>
+<p>The <code>pip install</code> command shown in this recipe is for Linux/Windows
+systems with an NVIDIA GPU. See step (6) above for the command to use
+with other platforms/GPU combinations. If you don't wish to pass the
+<code>--root</code> argument to <code>invokeai</code> with each launch, you may set the
+environment variable INVOKEAI_ROOT to point to the installation directory.</p>
+<p>Note that if you run into problems with the Conda installation, the InvokeAI
+staff will <strong>not</strong> be able to help you out. Caveat Emptor!</p>
 
   <hr>
 <div class="md-source-file">
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">February 8, 2023</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">February 11, 2023</span>
       
         <br>
         Created:
