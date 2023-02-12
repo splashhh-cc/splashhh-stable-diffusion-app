@@ -565,7 +565,7 @@ const CurrentImageButtons = () => {
           icon={<FaTrash />}
           tooltip={`${t('parameters:deleteImage')} (Del)`}
           aria-label={`${t('parameters:deleteImage')} (Del)`}
-          isDisabled={!currentImage || !isConnected || isProcessing}
+          isDisabled={true || !currentImage || !isConnected || isProcessing}
           style={{ backgroundColor: 'var(--btn-delete-image)' }}
         />
       </DeleteImageModal>

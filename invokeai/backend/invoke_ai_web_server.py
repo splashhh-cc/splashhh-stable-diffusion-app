@@ -352,7 +352,7 @@ class InvokeAIWebServer:
             config["max_limits"] = self.max_limits
             socketio.emit("systemConfig", config, to=request.sid)
 
-        @socketio.on('searchForModels')
+        # @socketio.on('searchForModels')
         def handle_search_models(search_folder: str):
             try:
                 if not search_folder:
@@ -375,7 +375,7 @@ class InvokeAIWebServer:
                 traceback.print_exc()
                 print("\n")
 
-        @socketio.on("addNewModel")
+        # @socketio.on("addNewModel")
         def handle_add_model(new_model_config: dict):
             try:
                 model_name = new_model_config['name']
@@ -409,7 +409,7 @@ class InvokeAIWebServer:
                 traceback.print_exc()
                 print("\n")
 
-        @socketio.on("deleteModel")
+        # @socketio.on("deleteModel")
         def handle_delete_model(model_name: str):
             try:
                 print(f">> Deleting Model: {model_name}")
@@ -430,7 +430,7 @@ class InvokeAIWebServer:
                 traceback.print_exc()
                 print("\n")
 
-        @socketio.on("requestModelChange")
+        # @socketio.on("requestModelChange")
         def handle_set_model(model_name: str):
             try:
                 print(f">> Model change requested: {model_name}")
@@ -455,7 +455,7 @@ class InvokeAIWebServer:
                 traceback.print_exc()
                 print("\n")
 
-        @socketio.on("requestEmptyTempFolder")
+        # @socketio.on("requestEmptyTempFolder")
         def empty_temp_folder():
             try:
                 temp_files = glob.glob(os.path.join(self.temp_image_path, "*"))
@@ -777,7 +777,6 @@ class InvokeAIWebServer:
                 socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                 eventlet.sleep(0)
 
-
                 if self.image_gen_semaphore.balance <= self.max_waiters:
                     analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
                     write_analytics(self.result_path,analytics)
@@ -874,13 +873,13 @@ class InvokeAIWebServer:
                 traceback.print_exc()
                 print("\n")
 
-        @socketio.on("cancel")
+        # @socketio.on("cancel")
         def handle_cancel():
             print(f">> Cancel processing requested")
             self.canceled.set()
 
         # TODO: I think this needs a safety mechanism.
-        @socketio.on("deleteImage")
+        # @socketio.on("deleteImage")
         def handle_delete_image(url, thumbnail, uuid, category, user_id: str = ''):
             try:
                 if user_id != secure_filename(user_id):
@@ -1705,6 +1704,10 @@ class InvokeAIWebServer:
         if generation_parameters:
             parameter_type_str = "generation_parameters"
             self._enforce_limits(generation_parameters, self.max_limits[parameter_type_str], parameter_type_str)
+
+            # force latents for progress images
+            generation_parameters["progress_latents"] = True
+            generation_parameters["progress_images"] = False
 
         if esrgan_parameters:
             parameter_type_str = "esrgan_parameters"
