@@ -70,6 +70,7 @@ export type BackendGenerationParameters = {
 
 export type BackendEsrGanParameters = {
   level: UpscalingLevel;
+  denoise_str: number;
   strength: number;
 };
 
@@ -112,13 +113,12 @@ export const frontendToBackendParameters = (
     shouldRunFacetool,
     upscalingLevel,
     upscalingStrength,
+    upscalingDenoising,
   } = postprocessingState;
 
   const {
     cfgScale,
-
     height,
-
     img2imgStrength,
     infillMethod,
     initialImage,
@@ -137,11 +137,9 @@ export const frontendToBackendParameters = (
     shouldFitToWidthHeight,
     shouldGenerateVariations,
     shouldRandomizeSeed,
-
     steps,
     threshold,
     tileSize,
-
     variationAmount,
     width,
   } = generationState;
@@ -191,6 +189,7 @@ export const frontendToBackendParameters = (
     if (shouldRunESRGAN) {
       esrganParameters = {
         level: upscalingLevel,
+        denoise_str: upscalingDenoising,
         strength: upscalingStrength,
       };
     }

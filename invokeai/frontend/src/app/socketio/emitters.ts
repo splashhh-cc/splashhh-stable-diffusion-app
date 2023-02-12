@@ -103,11 +103,15 @@ const makeSocketIOEmitters = (
       dispatch(setIsProcessing(true));
 
       const {
-        postprocessing: { upscalingLevel, upscalingStrength },
+        postprocessing: {
+          upscalingLevel,
+          upscalingDenoising,
+          upscalingStrength,
+        },
       } = getState();
 
       const esrganParameters = {
-        upscale: [upscalingLevel, upscalingStrength],
+        upscale: [upscalingLevel, upscalingDenoising, upscalingStrength],
       };
       const { user_id } = getState().system;
       if (getState().system.challenge === null) {
