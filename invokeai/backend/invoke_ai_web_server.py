@@ -1966,6 +1966,7 @@ def analytics_base_item() -> dict:
         "solution_time_ms": 4,
         "user_id": "uid"
     }
+    # todo: add number of waiters
 
 
 def init_analytics_gen_item(generation_parameters, esrgan_parameters, facetool_parameters, user_id: str) -> dict:

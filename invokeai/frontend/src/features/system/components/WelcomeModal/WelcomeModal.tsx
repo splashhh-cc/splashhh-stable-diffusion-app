@@ -77,7 +77,7 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
         <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(40px)" />
         <ModalContent className="modal welcome-modal">
           <ModalHeader className="welcome-modal-header">
-            {'Splashhh - Generative Ai app'}
+            {'Splashhh - Generative Ai Experiment'}
           </ModalHeader>
           <ModalCloseButton className="modal-close-btn" />
           <ModalBody className="welcome-modal-content">
