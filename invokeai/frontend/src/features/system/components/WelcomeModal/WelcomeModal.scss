@@ -1,8 +1,16 @@
 @use '../../../../styles/Mixins/' as *;
 
+.w-modal {
+  background-color: var(--background-color-secondary);
+  color: var(--text-color);
+  font-family: Inter;
+}
+
 .welcome-modal {
   max-height: 50rem;
   max-width: 50rem;
+
+  background-color: rgb(35, 53, 102);
   //font-family: Inter;
 
   .welcome-modal-content {

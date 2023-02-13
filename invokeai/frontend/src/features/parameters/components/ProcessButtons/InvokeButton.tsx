@@ -63,7 +63,7 @@ export default function InvokeButton(props: InvokeButton) {
           className="invoke-btn"
           {...rest}
         >
-          Invoke
+          Splashhh
         </IAIButton>
       )}
     </div>

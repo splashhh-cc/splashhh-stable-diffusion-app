@@ -24,6 +24,7 @@ import { FaExpandArrowsAlt } from 'react-icons/fa';
 import TextToImage from 'assets/images/Text-to-Image.webp';
 import ImageToImage from 'assets/images/Image-to-Image.webp';
 import UpscaleImg from 'assets/images/Upscale.webp';
+import SplashhhImg from 'assets/images/Splashhh-header.webp';
 
 const selector = createSelector(
   [systemSelector],
@@ -75,16 +76,23 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
         size="lg"
       >
         <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(40px)" />
-        <ModalContent className="modal welcome-modal">
+        <ModalContent className="w-modal welcome-modal">
           <ModalHeader className="welcome-modal-header">
             {'Splashhh - Generative Ai Experiment'}
           </ModalHeader>
           <ModalCloseButton className="modal-close-btn" />
           <ModalBody className="welcome-modal-content">
             <div className="welcome-modal-items">
-              <h1 style={{ fontWeight: 'bold' }}>
-                Welcome to Splashhh. Things to try:
-              </h1>
+              <Center>
+                <img
+                  src={SplashhhImg}
+                  alt="Upscale-image"
+                  style={{ width: 'auto', height: '60px' }}
+                />
+                <h1 style={{ fontWeight: 'bold' }}>
+                  Welcome to Splashhh. Things to try:
+                </h1>
+              </Center>
               <br />
               <br />
               <h2 style={{ fontWeight: 'bold' }}>1. Text-to-Image:</h2>
@@ -97,7 +105,7 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
                 <img
                   className=""
                   src={TextToImage}
-                  alt="invoke-ai-logo"
+                  alt="Text-to-Image"
                   style={{
                     width: 'auto',
                     height: '200px',
@@ -116,7 +124,7 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
               <Center>
                 <img
                   src={ImageToImage}
-                  alt="invoke-ai-logo"
+                  alt="Image-to-Image"
                   style={{ width: 'auto', height: '200px' }}
                 />
               </Center>
@@ -140,7 +148,7 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
               <Center>
                 <img
                   src={UpscaleImg}
-                  alt="invoke-ai-logo"
+                  alt="Upscale-image"
                   style={{ width: 'auto', height: '200px' }}
                 />
               </Center>
@@ -149,7 +157,7 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
 
           <ModalFooter>
             <Button onClick={onWelcomeModalClose} className="modal-close-btn">
-              {'Begin'}
+              {'Splashhh'}
             </Button>
           </ModalFooter>
         </ModalContent>

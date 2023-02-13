@@ -37,7 +37,7 @@ const SiteHeader = () => {
         <img src={InvokeAILogo} alt="invoke-ai-logo" />
         <Flex alignItems="center" columnGap="0.6rem">
           <Text fontSize="1.4rem">
-            invoke <strong>ai</strong>
+            Splas<strong>hhh</strong>
           </Text>
           <Text
             fontWeight="bold"
