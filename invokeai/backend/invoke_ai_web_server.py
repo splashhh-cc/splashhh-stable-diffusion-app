@@ -920,7 +920,8 @@ class InvokeAIWebServer:
             "model_weights": active_model_name,
             "model_hash": self.generate.model_hash,
             "app_id": APP_ID,
-            "app_version": APP_VERSION,
+            # "app_version": APP_VERSION, # may god forgive me
+            "app_version": '0.1.0',
         }
 
     def generate_images(
