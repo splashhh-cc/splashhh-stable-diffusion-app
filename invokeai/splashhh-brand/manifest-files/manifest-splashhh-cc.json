@@ -1,0 +1,30 @@
+{
+  "background_color": "#ff0000",
+  "description": "Splashhh - Genrative art using ML and AI models",
+  "dir": "ltr",
+  "display": "fullscreen",
+  "name": "Splashhh",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Splashhh",
+  "start_url": "/",
+  "theme_color": "#1e2025",
+  "categories": [
+    "entertainment",
+    "personalization",
+    "photo",
+    "utilities"
+  ],
+  "screenshots": [],
+  "icons": [
+    {
+      "src": "/favicon.ico"
+    },
+    {
+      "src": "/favicon.ico",
+      "type": "image/x-icon"
+    }
+  ],
+  "shortcuts": [],
+  "lang": "en"
+}

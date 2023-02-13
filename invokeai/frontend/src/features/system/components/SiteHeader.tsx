@@ -1,7 +1,7 @@
 import { Flex, Link, Text } from '@chakra-ui/react';
 
 // import { FaBug, FaCube, FaDiscord, FaGithub, FaKeyboard } from 'react-icons/fa';
-import { FaBug, FaDiscord, FaGithub, FaKeyboard } from 'react-icons/fa';
+import { FaBug, FaBurn, FaGithub, FaKeyboard } from 'react-icons/fa';
 
 import InvokeAILogo from 'assets/images/logo.png';
 import IAIIconButton from 'common/components/IAIIconButton';
@@ -37,7 +37,7 @@ const SiteHeader = () => {
         <img src={InvokeAILogo} alt="invoke-ai-logo" />
         <Flex alignItems="center" columnGap="0.6rem">
           <Text fontSize="1.4rem">
-            invoke <strong>ai</strong>
+            Splas<strong>hhh</strong>
           </Text>
           <Text
             fontWeight="bold"
@@ -65,6 +65,21 @@ const SiteHeader = () => {
             icon={<FaCube />}
           />
         </ModelManagerModal>*/}
+
+        <IAIIconButton
+          aria-label={'splashhh home page'}
+          tooltip={'splashhh home page'}
+          variant="link"
+          data-variant="link"
+          fontSize={20}
+          size={'sm'}
+          color="red"
+          icon={
+            <Link isExternal href="https://splashhh.cc">
+              <FaBurn />
+            </Link>
+          }
+        />
 
         <HotkeysModal>
           <IAIIconButton
@@ -103,14 +118,18 @@ const SiteHeader = () => {
           data-variant="link"
           fontSize={20}
           size={'sm'}
+          // colorScheme="blue"
           icon={
-            <Link isExternal href="http://github.com/invoke-ai/InvokeAI">
+            <Link
+              isExternal
+              href="https://github.com/splashhh-cc/splashhh-stable-diffusion-app"
+            >
               <FaGithub />
             </Link>
           }
         />
 
-        <IAIIconButton
+        {/*<IAIIconButton
           aria-label={t('common:discordLabel')}
           tooltip={t('common:discordLabel')}
           variant="link"
@@ -122,7 +141,7 @@ const SiteHeader = () => {
               <FaDiscord />
             </Link>
           }
-        />
+        />*/}
 
         <SettingsModal>
           <IAIIconButton
@@ -138,8 +157,8 @@ const SiteHeader = () => {
 
         <WelcomeModal>
           <IAIIconButton
-            aria-label={'Welcome'}
-            tooltip={'Welcome'}
+            aria-label={'Welcome Modal'}
+            tooltip={'Welcome Modal'}
             variant="link"
             data-variant="link"
             fontSize={22}
