@@ -90,7 +90,7 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
                   style={{ width: 'auto', height: '60px' }}
                 />
                 <h1 style={{ fontWeight: 'bold' }}>
-                  Welcome to Splashhh. Things to try:
+                  | Welcome to Splashhh. Things to try:
                 </h1>
               </Center>
               <br />
@@ -98,7 +98,7 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
               <h2 style={{ fontWeight: 'bold' }}>1. Text-to-Image:</h2>
               <Text>
                 {
-                  'Text-to-Image feature refers to the capability of a model to generate an image based on a textual description.'
+                  'Text-to-Image feature refers to the capability of a model to generate an image based on a textual description. The first prompt is already included in the text box. You can also try your own prompt.'
                 }
               </Text>
               <Center>
@@ -118,7 +118,7 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
               <h2 style={{ fontWeight: 'bold' }}>2. Image-to-Image:</h2>
               <Text>
                 {
-                  'This can be useful for a variety of applications, such as image editing and image style transfer. For example, the model could be used to add a specific filter or effect to an input image, or to transfer the style of one image to another.'
+                  'This can be useful for a variety of applications, such as image editing and image style transfer. For example, the model could be used to add a specific filter or effect to an input image, or to transfer the style of one image to another. Alternatively, you can also try to create a new image based on the style of the input image or slightly adjust an existing image.'
                 }
               </Text>
               <Center>
@@ -142,7 +142,7 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
                 />
                 <br />
                 {
-                  'Once you created the perfect image - upscale it: increase the size of an image while still maintaining its quality and preserving its details.'
+                  'Once you created the perfect image - upscale it: increase the size of an image while still maintaining its quality and preserving its details. A different ML model is used to upscale the image.'
                 }
               </Text>
               <Center>
@@ -157,7 +157,7 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
 
           <ModalFooter>
             <Button onClick={onWelcomeModalClose} className="modal-close-btn">
-              {'Splashhh'}
+              {'Begin'}
             </Button>
           </ModalFooter>
         </ModalContent>
