@@ -1,4 +1,4 @@
-import { Flex, Link, Text } from '@chakra-ui/react';
+import { Flex, Link, Text, Hide } from '@chakra-ui/react';
 
 // import { FaBug, FaCube, FaDiscord, FaGithub, FaKeyboard } from 'react-icons/fa';
 import { FaBug, FaBurn, FaGithub, FaKeyboard } from 'react-icons/fa';
@@ -66,20 +66,22 @@ const SiteHeader = () => {
           />
         </ModelManagerModal>*/}
 
-        <IAIIconButton
-          aria-label={'splashhh home page'}
-          tooltip={'splashhh home page'}
-          variant="link"
-          data-variant="link"
-          fontSize={20}
-          size={'sm'}
-          color="red"
-          icon={
-            <Link isExternal href="https://splashhh.cc">
-              <FaBurn />
-            </Link>
-          }
-        />
+        <Hide below="md">
+          <IAIIconButton
+            aria-label={'splashhh home page'}
+            tooltip={'splashhh home page'}
+            variant="link"
+            data-variant="link"
+            fontSize={20}
+            size={'sm'}
+            color="red"
+            icon={
+              <Link isExternal href="https://splashhh.cc">
+                <FaBurn />
+              </Link>
+            }
+          />
+        </Hide>
 
         <HotkeysModal>
           <IAIIconButton
@@ -143,29 +145,33 @@ const SiteHeader = () => {
           }
         />*/}
 
-        <SettingsModal>
-          <IAIIconButton
-            aria-label={t('common:settingsLabel')}
-            tooltip={t('common:settingsLabel')}
-            variant="link"
-            data-variant="link"
-            fontSize={22}
-            size={'sm'}
-            icon={<MdSettings />}
-          />
-        </SettingsModal>
+        <Hide below="md">
+          <SettingsModal>
+            <IAIIconButton
+              aria-label={t('common:settingsLabel')}
+              tooltip={t('common:settingsLabel')}
+              variant="link"
+              data-variant="link"
+              fontSize={22}
+              size={'sm'}
+              icon={<MdSettings />}
+            />
+          </SettingsModal>
+        </Hide>
 
-        <WelcomeModal>
-          <IAIIconButton
-            aria-label={'Welcome Modal'}
-            tooltip={'Welcome Modal'}
-            variant="link"
-            data-variant="link"
-            fontSize={22}
-            size={'sm'}
-            icon={<MdPanTool />}
-          />
-        </WelcomeModal>
+        <Hide below="md">
+          <WelcomeModal>
+            <IAIIconButton
+              aria-label={'Welcome Modal'}
+              tooltip={'Welcome Modal'}
+              variant="link"
+              data-variant="link"
+              fontSize={22}
+              size={'sm'}
+              icon={<MdPanTool />}
+            />
+          </WelcomeModal>
+        </Hide>
       </div>
     </div>
   );
