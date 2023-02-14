@@ -1,47 +1,16 @@
 const prompts = [
   'portrait photo of a asia old warrior chief, tribal panther makeup, blue on red, side profile, looking away, serious eyes, 50mm portrait photography, hard rim lighting photography–beta –ar 2:3 –beta –upbeta–upbeta',
 
-  'Keanu Reeves portrait photo of a asia old warrior chief, tribal ' +
-    'panther make up, blue on red, side profile, looking away, serious eyes, ' +
-    '50mm portrait photography, hard rim lighting photography',
-
-  'portrait photo of a african old warrior chief, tribal panther make up, ' +
-    'gold on white, side profile, looking away, serious eyes, 50mm portrait ' +
-    'photography, hard rim lighting photography',
-
-  'priest, blue robes, 68 year old man, national geographic, portrait, ' +
-    'photo, photography',
-
-  'ultrarealistic, (native american old woman ) portrait, cinematic ' +
-    'lighting, award winning photo, no color, 80mm lense',
-
   'portrait photo headshot by mucha, sharp focus, elegant, render, octane, ' +
     'detailed, award winning photography, masterpiece, rim lit',
 
   'a vibrant professional studio portrait photography of a young, pale, ' +
     'goth, attractive, friendly, casual, delightful, intricate, gorgeous, ' +
-    'female, piercing green eyes, wears a gold ankh necklace, femme fatale, ' +
-    'nouveau, curated collection, annie leibovitz, nikon, award winning, ' +
-    'breathtaking, groundbreaking, superb, outstanding, lensculture portrait ' +
-    'awards, photoshopped, dramatic lighting, 8 k, hi res',
+    'female, piercing green eyes,dramatic lighting, 8 k, hi res',
 
   'medium shot side profile portrait photo of the Takeshi Kaneshiro warrior ' +
     'chief, tribal panther make up, blue on red, looking away, serious eyes, ' +
     '50mm portrait, photography, hard rim lighting photography',
-
-  'gorgeous young Swiss girl sitting by window with headphones on, wearing ' +
-    'white bra with translucent shirt over, soft lips, beach blonde hair, ' +
-    'octane render, unreal engine, photograph, realistic skin texture, ' +
-    'photorealistic, hyper realism, highly detailed, 85mm portrait ' +
-    'photography, award winning, hard rim lighting photography',
-
-  'portrait photo of a old man crying, Tattles, sitting on bed, guages in ' +
-    'ears, looking away, serious eyes, 50mm portrait photography, hard rim ' +
-    'lighting photography',
-
-  'full length photo of christina hendricks as an amazon warrior, highly ' +
-    'detailed, 4 k, hdr, smooth, sharp focus, high resolution, award - ' +
-    'winning photo',
 
   'very complex hyper-maximalist overdetailed cinematic tribal fantasy ' +
     'closeup macro portrait of a heavenly beautiful young royal dragon queen ' +
@@ -67,17 +36,42 @@ const prompts = [
 
   'a detailed manga illustration character full body portrait of a dark ' +
     'haired cyborg anime man who has a red mechanical eye and is wearing a ' +
-    'cape, trending on artstation, digital art, 4 k resolution, detailed, ' +
+    'cape, trending on artstation, digital art, 4k resolution, detailed, ' +
     'high quality, sharp focus, hq artwork, insane detail, concept art, ' +
     'character concept, character illustration, full body illustration, ' +
     'cinematic, dramatic lighting',
 
-  'a digital concept art by artgerm and greg rutkowski and alphonse mucha. ' +
-    'clear portrait of a lonely attractive men in uniform of tang dynasty!! ' +
-    'heavy armored cavalry of the tang dynasty!! light effect. hyper ' +
-    'detailed, character concept, full body!! dynamic pose, glowing lights!! ' +
-    'intricate, elegant, artstation, concept art, smooth, sharp focus, ' +
-    'illustration',
+  'Two futuristic towers with a skybridge covered in lush foliage, digital art',
+
+  'a painting of a thinker no facial hair, thoughtful, focused, visionary',
+
+  'a painting of a thinker no facial hair, thoughtful, focused, visionary',
+
+  'a digital concept art by artgerm and greg rutkowski and alphonse mucha',
+
+  'Pixar style 3D render of a baby hippo, 4k, high resolution, trending in artstation',
+
+  'Pixar style 3D render of a fox wearing a tophat, 4k, high resolution, trending in artstation',
+
+  'An oil painting of a mechanical clockwork flying machine from the renaissance, Gorgeous digital painting, amazing art, artstation 3, realistic',
+
+  'fantasy tavern interior | Breath-taking digital painting with warm colours amazing art mesmerizing, captivating, artstation 3',
+
+  'German palace gardens and towers | oil painting, trending in artstation, anime',
+
+  'A digital illustration of glowing toadstools beside a pond with lilypads, 4k, detailed, trending in artstation',
+
+  'A digital illustration of X, 4k, detailed, trending in artstation, fantasy',
+
+  'A digital illustration of a medieval town, 4k, detailed, trending in artstation, fantasy',
+
+  'A digital illustration of the Babel tower, 4k, detailed, trending in artstation, fantasy vivid colors',
+
+  'A digital illustration of a steampunk library with clockwork machines, 4k, detailed, trending in artstation, fantasy vivid colors',
+
+  'A digital illustration of a steampunk flying machine in the sky with cogs and mechanisms, 4k, detailed, trending in artstation, fantasy vivid colors',
+
+  'The white fox in the Arcadian praerie | Breath-taking digital painting with vivid colours amazing art mesmerizing, captivating, artstation 3, japanese style',
 ];
 export default prompts;
 

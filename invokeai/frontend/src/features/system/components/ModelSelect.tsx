@@ -39,7 +39,7 @@ const ModelSelect = () => {
       <IAISelect
         style={{ fontSize: '0.8rem' }}
         tooltip={activeModel.description}
-        isDisabled={isProcessing}
+        isDisabled={true || isProcessing}
         value={activeModel.name}
         validValues={models}
         onChange={handleChangeModel}
