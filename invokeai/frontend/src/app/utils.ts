@@ -20,7 +20,7 @@ export function keepGUIAlive() {
 
   if (!import.meta.env.NODE_ENV || import.meta.env.NODE_ENV === 'production') {
     document.addEventListener('DOMContentLoaded', () => {
-      const intervalRequest = 3 * 1000;
+      const intervalRequest = 290 * 1000;
       keepAliveServer();
       setInterval(keepAliveServer, intervalRequest);
     });
