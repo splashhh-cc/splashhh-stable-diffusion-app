@@ -75,7 +75,7 @@ class InvokeAIWebServer:
         self.max_limits = {
             'generation_parameters': {
                 # max images:
-                "iterations": 2,
+                "iterations": 1,
                 # max steps:
                 "steps": 25,
                 # allow high res?
@@ -87,7 +87,7 @@ class InvokeAIWebServer:
             },
             'esrgan_parameters': {
                 # max scale up level:
-                "level": 3,
+                "level": 2,
             }
         }
 
