@@ -1,5 +1,11 @@
 @use '../../styles/Mixins/' as *;
 
+.bg_svg_icon_color_red {
+  svg {
+    fill: rgb(255, 0, 0);
+  }
+}
+
 .invokeai__icon-button {
   background: var(--btn-base-color);
   cursor: pointer;

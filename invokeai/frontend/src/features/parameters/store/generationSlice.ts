@@ -4,7 +4,7 @@ import * as InvokeAI from 'app/invokeai';
 import { getPromptAndNegative } from 'common/util/getPromptAndNegative';
 import promptToString from 'common/util/promptToString';
 import { seedWeightsToString } from 'common/util/seedWeightPairs';
-import prompts from 'app/prompts';
+import { default_prompt } from 'app/prompts';
 
 export interface GenerationState {
   cfgScale: number;
@@ -43,7 +43,7 @@ const initialGenerationState: GenerationState = {
   iterations: 1,
   maskPath: '',
   perlin: 0,
-  prompt: prompts[Math.floor(Math.random() * prompts.length)],
+  prompt: default_prompt(),
   negativePrompt: '',
   sampler: 'k_lms',
   seamBlur: 16,

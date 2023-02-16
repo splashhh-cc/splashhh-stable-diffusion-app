@@ -74,7 +74,7 @@ const SiteHeader = () => {
             data-variant="link"
             fontSize={20}
             size={'sm'}
-            color="red"
+            styleClass="bg_svg_icon_color_red"
             icon={
               <Link isExternal href="https://splashhh.cc">
                 <FaBurn />
@@ -169,6 +169,7 @@ const SiteHeader = () => {
               fontSize={22}
               size={'sm'}
               icon={<MdPanTool />}
+              styleClass="bg_svg_icon_color_red"
             />
           </WelcomeModal>
         </Hide>

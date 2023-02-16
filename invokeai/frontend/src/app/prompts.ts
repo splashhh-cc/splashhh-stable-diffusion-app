@@ -1,4 +1,6 @@
-const prompts = [
+export const prompts = [
+  'quantum entanglement, deep space',
+
   'portrait photo of a asia old warrior chief, tribal panther makeup, blue on red, side profile, looking away, serious eyes, 50mm portrait photography, hard rim lighting photography–beta –ar 2:3 –beta –upbeta–upbeta',
 
   'portrait photo headshot by mucha, sharp focus, elegant, render, octane, ' +
@@ -8,16 +10,9 @@ const prompts = [
     'goth, attractive, friendly, casual, delightful, intricate, gorgeous, ' +
     'female, piercing green eyes,dramatic lighting, 8 k, hi res',
 
-  'medium shot side profile portrait photo of the Takeshi Kaneshiro warrior ' +
-    'chief, tribal panther make up, blue on red, looking away, serious eyes, ' +
-    '50mm portrait, photography, hard rim lighting photography',
+  'sacred geometry symbol white on black, red lines, golden ratio',
 
-  'very complex hyper-maximalist overdetailed cinematic tribal fantasy ' +
-    'closeup macro portrait of a heavenly beautiful young royal dragon queen ' +
-    'with long platinum blonde windblown hair and dragon scale wings, Magic ' +
-    'the gathering, pale wet skin and dark eyes and red lipstick ,flirting ' +
-    'smiling passion seductive, vibrant high contrast, by andrei ' +
-    'riabovitchev',
+  'quantum entanglement, deep space',
 
   'photo of a gorgeous young woman in the style of stefan kostic and david ' +
     'la chapelle, coy, shy, alluring, evocative, stunning, award winning, ' +
@@ -29,17 +24,7 @@ const prompts = [
     'artwork: dieselpunk patrol car inspired by a locomotive. By Greg ' +
     'Rutkowski, Ilya Kuvshinov, WLOP, Stanley Artgerm Lau, Ruan Jia and ' +
     'Fenghua Zhong, trending on ArtStation, subtle muted cinematic colors, ' +
-    'made in Maya, Blender and Photoshop, octane render, excellent ' +
-    'composition, cinematic atmosphere, dynamic dramatic cinematic lighting, ' +
-    'precise correct anatomy, aesthetic, very inspirational, arthouse ' +
     '*a highly detailed epic cinematic concept art CG render digital painting',
-
-  'a detailed manga illustration character full body portrait of a dark ' +
-    'haired cyborg anime man who has a red mechanical eye and is wearing a ' +
-    'cape, trending on artstation, digital art, 4k resolution, detailed, ' +
-    'high quality, sharp focus, hq artwork, insane detail, concept art, ' +
-    'character concept, character illustration, full body illustration, ' +
-    'cinematic, dramatic lighting',
 
   'Two futuristic towers with a skybridge covered in lush foliage, digital art',
 
@@ -73,7 +58,14 @@ const prompts = [
 
   'The white fox in the Arcadian praerie | Breath-taking digital painting with vivid colours amazing art mesmerizing, captivating, artstation 3, japanese style',
 ];
-export default prompts;
+
+export function default_prompt() {
+  return prompts[0];
+}
+
+export function random_prompt() {
+  return prompts[Math.floor(Math.random() * prompts.length)];
+}
 
 //
 // *photo of a gorgeous young woman in the style of stefan kostic and david
