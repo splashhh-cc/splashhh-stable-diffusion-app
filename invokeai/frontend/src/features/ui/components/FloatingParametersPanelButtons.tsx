@@ -7,7 +7,6 @@ import {
   GalleryState,
   setShouldShowGallery,
 } from 'features/gallery/store/gallerySlice';
-import CancelButton from 'features/parameters/components/ProcessButtons/CancelButton';
 import InvokeButton from 'features/parameters/components/ProcessButtons/InvokeButton';
 import {
   activeTabNameSelector,
@@ -18,6 +17,7 @@ import { isEqual } from 'lodash';
 
 import { useHotkeys } from 'react-hotkeys-hook';
 import { FaSlidersH } from 'react-icons/fa';
+import RandomPromptButton from 'features/parameters/components/ProcessButtons/RandomPromptButton';
 
 export const floatingSelector = createSelector(
   [gallerySelector, uiSelector, activeTabNameSelector],
@@ -111,7 +111,7 @@ const FloatingParametersPanelButtons = () => {
       {shouldShowProcessButtons && (
         <>
           <InvokeButton iconButton />
-          <CancelButton />
+          <RandomPromptButton />
         </>
       )}
     </div>

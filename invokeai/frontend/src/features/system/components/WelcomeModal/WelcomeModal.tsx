@@ -20,6 +20,7 @@ import { systemSelector } from 'features/system/store/systemSelectors';
 import { setWelcomeModal } from 'features/system/store/systemSlice';
 import IAIIconButton from 'common/components/IAIIconButton';
 import { FaExpandArrowsAlt } from 'react-icons/fa';
+import { MdInsights } from 'react-icons/md';
 
 import TextToImage from 'assets/images/Text-to-Image.webp';
 import ImageToImage from 'assets/images/Image-to-Image.webp';
@@ -114,6 +115,15 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
                 />
               </Center>
               <br />
+              <Text>
+                No ideas? Try the ‘Random Prompt‘ button:{' '}
+                <IAIIconButton
+                  icon={<MdInsights />}
+                  tooltip={'Random prompt'}
+                  aria-label={'Random prompt'}
+                  styleClass="random-prompt-btn"
+                />
+              </Text>
               <br />
               <h2 style={{ fontWeight: 'bold' }}>2. Image-to-Image:</h2>
               <Text>
@@ -152,6 +162,15 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
                   style={{ width: 'auto', height: '200px' }}
                 />
               </Center>
+              <br />
+              <br />
+              <br />
+              <Text>
+                Terms and conditions:
+                <br />
+                By closing this window you agree to the terms and conditions and
+                the privacy policy as published on Splashhh.cc
+              </Text>
             </div>
           </ModalBody>
 

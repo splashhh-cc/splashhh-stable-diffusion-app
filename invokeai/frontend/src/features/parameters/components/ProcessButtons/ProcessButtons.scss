@@ -24,6 +24,14 @@
   );
 }
 
+.random-prompt-btn {
+  @include Button(
+    $btn-color: rgb(20, 110, 70),
+    $btn-color-hover: rgb(30, 180, 100),
+    $btn-width: 3rem
+  );
+}
+
 .loopback-btn {
   &[data-as-checkbox='true'] {
     background-color: var(--btn-btn-base-color);

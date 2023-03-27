@@ -3,11 +3,11 @@ import { RootState } from 'app/store';
 import { useAppDispatch, useAppSelector } from 'app/storeHooks';
 import IAIIconButton from 'common/components/IAIIconButton';
 import { setDoesCanvasNeedScaling } from 'features/canvas/store/canvasSlice';
-import CancelButton from 'features/parameters/components/ProcessButtons/CancelButton';
 import InvokeButton from 'features/parameters/components/ProcessButtons/InvokeButton';
 import { setShouldShowParametersPanel } from 'features/ui/store/uiSlice';
 import { useTranslation } from 'react-i18next';
 import { FaSlidersH } from 'react-icons/fa';
+import RandomPromptButton from 'features/parameters/components/ProcessButtons/RandomPromptButton';
 
 export default function UnifiedCanvasProcessingButtons() {
   const shouldPinParametersPanel = useAppSelector(
@@ -38,7 +38,7 @@ export default function UnifiedCanvasProcessingButtons() {
         <InvokeButton iconButton />
       </Flex>
       <Flex>
-        <CancelButton width={'100%'} height={'40px'} />
+        <RandomPromptButton width={'100%'} height={'40px'} />
       </Flex>
     </Flex>
   );
