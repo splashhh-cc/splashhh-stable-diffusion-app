@@ -26,6 +26,7 @@ import TextToImage from 'assets/images/Text-to-Image.webp';
 import ImageToImage from 'assets/images/Image-to-Image.webp';
 import UpscaleImg from 'assets/images/Upscale.webp';
 import SplashhhImg from 'assets/images/Splashhh-header.webp';
+import type { RootState } from 'app/store';
 
 const selector = createSelector(
   [systemSelector],
@@ -57,6 +58,10 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
 
   const { isWelcomeModalOpen } = useAppSelector(selector);
 
+  const appVersion = useAppSelector(
+    (state: RootState) => state.system.app_version
+  );
+
   const onWelcomeModalClose = () => {
     dispatch(setWelcomeModal(false));
   };
@@ -80,6 +85,13 @@ const WelcomeModal = ({ children }: WelcomeModalProps) => {
         <ModalContent className="w-modal welcome-modal">
           <ModalHeader className="welcome-modal-header">
             {'Splashhh - Generative Ai Experiment'}
+            <Text
+              fontWeight="bold"
+              color="var(--text-color-secondary)"
+              // marginTop="0.2rem"
+            >
+              App Version: {appVersion}
+            </Text>
           </ModalHeader>
           <ModalCloseButton className="modal-close-btn" />
           <ModalBody className="welcome-modal-content">
