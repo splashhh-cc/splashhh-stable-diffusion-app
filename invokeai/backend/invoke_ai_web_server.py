@@ -938,7 +938,8 @@ class InvokeAIWebServer:
             "model_hash": self.generate.model_hash,
             "app_id": APP_ID,
             # "app_version": APP_VERSION, # may god forgive me
-            "app_version": '0.1.0',
+            # todo: fix version and metadata
+            "app_version": '0.2.0',
         }
 
     def generate_images(
