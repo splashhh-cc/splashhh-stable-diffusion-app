@@ -66,10 +66,12 @@ class InvokeAIWebServer:
         self.ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
         # load control
-        s_value = 1
-        self.image_gen_semaphore = Semaphore(s_value)
+        # concurrently allow number of image generation:
+        concurrent_gen = 1
+        self.image_gen_semaphore = Semaphore(concurrent_gen)
         max_waiters = 10
-        self.max_waiters = s_value - max_waiters + 1  # The waiters are considered as negative values in self.semaphore.balance
+        self.max_waiters = concurrent_gen - max_waiters + 1
+        # The waiters are counted as negative values when calling self.image_gen_semaphore.balance
 
         # parameters control
         self.max_limits = {
@@ -89,6 +91,13 @@ class InvokeAIWebServer:
                 # max scale up level:
                 "level": 2,
             }
+        }
+
+        # increase quality during low load
+        self.quality_increase = {
+            'generation_parameters': {
+                'steps': 40,
+            },
         }
 
     def allowed_file(self, filename: str) -> bool:
@@ -699,6 +708,14 @@ class InvokeAIWebServer:
 
                 generation_parameters, esrgan_parameters, facetool_parameters = self.enforce_max_limits(
                     generation_parameters, esrgan_parameters, facetool_parameters)
+
+                # during low load, increase steps to 40
+                if self.image_gen_semaphore.balance >= 0:
+                    # increase steps to 40
+                    generation_parameters["steps"] = self.quality_increase["generation_parameters"]["steps"]
+                    # todo: replace "error" event with a notification
+                    # self.socketio.emit("error", {"message": "due to low load, increased steps to 40"}, to=request.sid)
+                    print(f'\n>> due to low load, increased steps to 40')
 
                 # truncate long init_mask/init_img base64 if needed
                 printable_parameters = {
