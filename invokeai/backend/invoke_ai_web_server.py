@@ -713,8 +713,7 @@ class InvokeAIWebServer:
                 if self.image_gen_semaphore.balance >= 0:
                     # increase steps to 40
                     generation_parameters["steps"] = self.quality_increase["generation_parameters"]["steps"]
-                    # todo: replace "error" event with a notification
-                    # self.socketio.emit("error", {"message": "due to low load, increased steps to 40"}, to=request.sid)
+                    self.socketio.emit("serverMsg", {"message": "due to low load, increased steps to 40"}, to=request.sid)
                     print(f'\n>> due to low load, increased steps to 40')
 
                 # truncate long init_mask/init_img base64 if needed

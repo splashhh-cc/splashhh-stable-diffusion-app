@@ -36,6 +36,7 @@ export const socketioMiddleware = () => {
       onConnect,
       onDisconnect,
       onError,
+      onServerMsg,
       onPostprocessingResult,
       onGenerationResult,
       onIntermediateResult,
@@ -79,6 +80,10 @@ export const socketioMiddleware = () => {
       socketio.on('disconnect', () => onDisconnect());
 
       socketio.on('error', (data: InvokeAI.ErrorResponse) => onError(data));
+
+      socketio.on('serverMsg', (data: InvokeAI.ErrorResponse) =>
+        onServerMsg(data)
+      );
 
       socketio.on('generationResult', (data: InvokeAI.ImageResultResponse) =>
         onGenerationResult(data)

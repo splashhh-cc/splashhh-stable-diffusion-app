@@ -260,6 +260,28 @@ const makeSocketIOListeners = (
       }
     },
     /**
+     * Callback to run when we receive a 'progressUpdate' event.
+     */
+    onServerMsg: (data: InvokeAI.ErrorResponse) => {
+      const { message, additionalData } = data;
+
+      if (additionalData) {
+        // TODO: handle more data than short message
+      }
+
+      try {
+        dispatch(
+          addLogEntry({
+            timestamp: dateFormat(new Date(), 'isoDateTime'),
+            message: `Server message: ${message}`,
+            level: 'warning',
+          })
+        );
+      } catch (e) {
+        console.error(e);
+      }
+    },
+    /**
      * Callback to run when we receive a 'galleryImages' event.
      */
     onGalleryImages: (data: InvokeAI.GalleryImagesResponse) => {
