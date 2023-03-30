@@ -8,6 +8,7 @@ import mimetypes
 import os
 import shutil
 import traceback
+from contextlib import contextmanager
 from datetime import datetime
 from threading import Event
 from uuid import uuid4
@@ -798,7 +799,7 @@ class InvokeAIWebServer:
                     write_analytics(self.result_path,analytics)
                     raise Exception("Too many concurrent requests. Please try again later.")
 
-                with self.image_gen_semaphore:
+                with self.emit_queue_len_plus_one(self.image_gen_semaphore, request.sid):
                     analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
                     analytics["process_time_sec"] = time.time()
 
@@ -1359,7 +1360,7 @@ class InvokeAIWebServer:
                 write_analytics(self.result_path,analytics)
                 raise Exception("Too many concurrent requests. Please try again later.")
 
-            with self.image_gen_semaphore:
+            with self.emit_queue_len_plus_one(self.image_gen_semaphore, request.sid):
                 analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
                 analytics["process_time_sec"] = time.time()
 
@@ -1742,6 +1743,21 @@ class InvokeAIWebServer:
                     max_limits[key])
                 print(err_msg)
                 self.socketio.emit("error", {"message": (str(err_msg))}, to=request.sid)
+
+    # emit the length of the queue with the expected plus one addition then acquire the lock
+    @contextmanager
+    def emit_queue_len_plus_one(self, lock, to):
+        queue_len = abs(lock.balance) + 1 if lock.balance < 0 else 0
+        self.socketio.emit(
+            "queueLength",
+            queue_len,
+            to=to,
+        )
+        lock.acquire()
+        try:
+            yield
+        finally:
+            lock.release()
 
 
 class Progress:
