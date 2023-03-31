@@ -58,7 +58,7 @@ const StatusIndicator = () => {
     statusStyle = 'status-working';
   }
 
-  if (statusMessage)
+  if (statusMessage) {
     if (isProcessing) {
       if (totalIterations > 1) {
         statusMessage = `${t(
@@ -66,6 +66,13 @@ const StatusIndicator = () => {
         )} (${currentIteration}/${totalIterations})`;
       }
     }
+
+    //   if (isWaitingForQueue) {
+    //     statusMessage = `${t(
+    //       statusMessage as keyof typeof t
+    //     )} (${currentIteration}/${totalIterations})`;
+    //   }
+  }
 
   const tooltipLabel =
     hasError && !wasErrorSeen

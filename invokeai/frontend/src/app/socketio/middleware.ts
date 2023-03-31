@@ -85,6 +85,10 @@ export const socketioMiddleware = () => {
         onServerMsg(data)
       );
 
+      socketio.on('queueLength', (data: InvokeAI.ErrorResponse) =>
+        onServerMsg(data)
+      );
+
       socketio.on('generationResult', (data: InvokeAI.ImageResultResponse) =>
         onGenerationResult(data)
       );

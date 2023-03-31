@@ -1744,13 +1744,13 @@ class InvokeAIWebServer:
                 print(err_msg)
                 self.socketio.emit("error", {"message": (str(err_msg))}, to=request.sid)
 
-    # emit the length of the queue with the expected plus one addition then acquire the lock
+    # emit the length of the queue with the expected plus one addition, then acquire the lock
     @contextmanager
     def emit_queue_len_plus_one(self, lock, to):
-        queue_len = abs(lock.balance) + 1 if lock.balance < 0 else 0
+        queue_len = abs(lock.balance) + 1 if lock.balance <= 0 else 0
         self.socketio.emit(
             "queueLength",
-            queue_len,
+            {"message": (str(queue_len))},
             to=to,
         )
         lock.acquire()
@@ -1971,8 +1971,8 @@ def verify_solution(challenge: str, solution: str, difficulty: int) -> bool:
 
 
 def verify_challenge_solution(session: dict, solved: dict) -> bool:
-    # print('session: ', session)
-    # print('solved: ', solved)
+    print('session: ', session)
+    print('solved: ', solved)
 
     try:
         s_challenge: dict = session["challenge"]
