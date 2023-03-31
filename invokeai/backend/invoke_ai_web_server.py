@@ -16,7 +16,6 @@ from uuid import uuid4
 import eventlet
 import time
 
-from flask_session import Session
 from PIL import Image, ImageOps
 
 from PIL.Image import Image as ImageType
@@ -142,9 +141,18 @@ class InvokeAIWebServer:
             __name__, static_url_path="", static_folder=frontend.__path__[0]
         )
 
-        self.app.config['SECRET_KEY'] = 'top-secret!'
-        self.app.config['SESSION_TYPE'] = 'filesystem'
-        Session(self.app)
+        # read the env variable SESSION_SECRET_KEY or generate a random one
+        self.app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET_KEY', uuid4().hex)
+        # print a md5 hash of the secret key
+        print('>> SESSION_SECRET_KEY Hash:', shake_256(self.app.config['SECRET_KEY'].encode()).hexdigest(8))
+
+        # todo: activate when ready
+        # Set the session cookie to be secure (only sent over HTTPS)
+        # self.app.config['SESSION_COOKIE_SECURE'] = True
+        # Set the session cookie to be HttpOnly (prevents client-side JS from accessing it)
+        # self.app.config['SESSION_COOKIE_HTTPONLY'] = True
+        # Set the session cookie to be samesite (prevents CSRF attacks)
+        self.app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
 
         self.socketio = SocketIO(self.app, **socketio_args, async_mode=None, manage_session=False)
 
@@ -1971,8 +1979,8 @@ def verify_solution(challenge: str, solution: str, difficulty: int) -> bool:
 
 
 def verify_challenge_solution(session: dict, solved: dict) -> bool:
-    print('session: ', session)
-    print('solved: ', solved)
+    # print('session: ', session)
+    # print('solved: ', solved)
 
     try:
         s_challenge: dict = session["challenge"]
