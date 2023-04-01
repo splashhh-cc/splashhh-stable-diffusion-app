@@ -262,19 +262,13 @@ const makeSocketIOListeners = (
     /**
      * Callback to run when we receive a 'progressUpdate' event.
      */
-    onServerMsg: (data: InvokeAI.ErrorResponse) => {
-      const { message, additionalData } = data;
-
-      if (additionalData) {
-        // TODO: handle more data than short message
-      }
-
+    onServerMsg: (message: string) => {
       try {
         dispatch(
           addLogEntry({
             timestamp: dateFormat(new Date(), 'isoDateTime'),
             message: `Server message: ${message}`,
-            level: 'warning',
+            level: 'info',
           })
         );
       } catch (e) {

@@ -17,3 +17,8 @@
   color: var(--status-working-color);
   text-shadow: 0 0 10px var(--status-working-glow);
 }
+
+.status-waiting {
+  color: rgb(95, 0, 173);
+  text-shadow: 0 0 10px rgb(95, 0, 173);
+}

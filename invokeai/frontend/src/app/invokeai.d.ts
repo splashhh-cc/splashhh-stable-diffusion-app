@@ -268,6 +268,11 @@ export declare type ErrorResponse = {
   additionalData?: string;
 };
 
+export declare type ServMsgResponse = {
+  message: string;
+  additionalData?: string;
+};
+
 export declare type GalleryImagesResponse = {
   images: Array<Omit<Image, 'uuid'>>;
   areMoreImagesAvailable: boolean;

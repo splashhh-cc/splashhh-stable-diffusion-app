@@ -93,10 +93,10 @@ class InvokeAIWebServer:
             }
         }
 
-        # increase quality during low load
+        # increase quality during low load, the values will be added to the requested values
         self.quality_increase = {
             'generation_parameters': {
-                'steps': 40,
+                'steps': 5,
             },
         }
 
@@ -150,7 +150,7 @@ class InvokeAIWebServer:
         # Set the session cookie to be secure (only sent over HTTPS)
         # self.app.config['SESSION_COOKIE_SECURE'] = True
         # Set the session cookie to be HttpOnly (prevents client-side JS from accessing it)
-        # self.app.config['SESSION_COOKIE_HTTPONLY'] = True
+        self.app.config['SESSION_COOKIE_HTTPONLY'] = True
         # Set the session cookie to be samesite (prevents CSRF attacks)
         self.app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
 
@@ -718,12 +718,14 @@ class InvokeAIWebServer:
                 generation_parameters, esrgan_parameters, facetool_parameters = self.enforce_max_limits(
                     generation_parameters, esrgan_parameters, facetool_parameters)
 
-                # during low load, increase steps to 40
-                if self.image_gen_semaphore.balance >= 0:
-                    # increase steps to 40
-                    generation_parameters["steps"] = self.quality_increase["generation_parameters"]["steps"]
-                    self.socketio.emit("serverMsg", {"message": "due to low load, increased steps to 40"}, to=request.sid)
-                    print(f'\n>> due to low load, increased steps to 40')
+                # during low load, increase steps
+                if self.image_gen_semaphore.balance > 0:
+                    add_steps = self.quality_increase["generation_parameters"]["steps"]
+                    # increase steps
+                    generation_parameters["steps"] += add_steps
+                    msg = "Due to low load, increased steps to " + str(generation_parameters["steps"])
+                    self.socketio.emit("serverMsg", {"message": msg}, to=request.sid)
+                    print(f'\n>> ' + msg)
 
                 # truncate long init_mask/init_img base64 if needed
                 printable_parameters = {
@@ -774,7 +776,7 @@ class InvokeAIWebServer:
                 if 'postprocessed' in original_image['url']:
                     raise ValueError("Unable to postprocess an image more then once")
 
-                progress = Progress()
+                progress = Progress(lock=self.image_gen_semaphore)
 
                 socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
                 eventlet.sleep(0)
@@ -807,7 +809,7 @@ class InvokeAIWebServer:
                     write_analytics(self.result_path,analytics)
                     raise Exception("Too many concurrent requests. Please try again later.")
 
-                with self.emit_queue_len_plus_one(self.image_gen_semaphore, request.sid):
+                with self.acquire_emit_queue_len(self.image_gen_semaphore, request.sid):
                     analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
                     analytics["process_time_sec"] = time.time()
 
@@ -973,7 +975,7 @@ class InvokeAIWebServer:
             actual_generation_mode = generation_parameters["generation_mode"]
             original_bounding_box = None
 
-            progress = Progress(generation_parameters=generation_parameters)
+            progress = Progress(generation_parameters=generation_parameters, lock=self.image_gen_semaphore)
 
             self.socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
             eventlet.sleep(0)
@@ -1368,7 +1370,7 @@ class InvokeAIWebServer:
                 write_analytics(self.result_path,analytics)
                 raise Exception("Too many concurrent requests. Please try again later.")
 
-            with self.emit_queue_len_plus_one(self.image_gen_semaphore, request.sid):
+            with self.acquire_emit_queue_len(self.image_gen_semaphore, request.sid):
                 analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
                 analytics["process_time_sec"] = time.time()
 
@@ -1754,22 +1756,20 @@ class InvokeAIWebServer:
 
     # emit the length of the queue with the expected plus one addition, then acquire the lock
     @contextmanager
-    def emit_queue_len_plus_one(self, lock, to):
+    def acquire_emit_queue_len(self, lock, to):
         queue_len = abs(lock.balance) + 1 if lock.balance <= 0 else 0
-        self.socketio.emit(
-            "queueLength",
-            {"message": (str(queue_len))},
-            to=to,
-        )
+        # self.socketio.emit("serverMsg", {"message": (str(queue_len))}, to=to)
         lock.acquire()
         try:
             yield
         finally:
+            queue_len = abs(lock.balance) - 1 if lock.balance < 0 else 0
+            self.socketio.emit("serverMsg", {"message": "queue length: " + (str(queue_len))})
             lock.release()
 
 
 class Progress:
-    def __init__(self, generation_parameters=None):
+    def __init__(self, generation_parameters=None, lock=None):
         self.current_step = 1
         self.total_steps = (
             self._calculate_real_steps(
@@ -1786,7 +1786,8 @@ class Progress:
         self.total_iterations = (
             generation_parameters["iterations"] if generation_parameters else 1
         )
-        self.current_status = "common:statusPreparing"
+        queue_len = abs(lock.balance) + 1 if lock.balance <= 0 else 0
+        self.current_status = "Waiting (Queue length: " + str(queue_len) + ")"
         self.is_processing = True
         self.current_status_has_steps = False
         self.has_error = False
@@ -1985,6 +1986,7 @@ def verify_challenge_solution(session: dict, solved: dict) -> bool:
     try:
         s_challenge: dict = session["challenge"]
     except KeyError:
+        print('session cookie' + str(session))
         raise ValueError("No challenge was found for the session.")
 
     if solved is None or solved.get("solution") is None:

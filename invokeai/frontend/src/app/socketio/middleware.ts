@@ -81,13 +81,15 @@ export const socketioMiddleware = () => {
 
       socketio.on('error', (data: InvokeAI.ErrorResponse) => onError(data));
 
-      socketio.on('serverMsg', (data: InvokeAI.ErrorResponse) =>
-        onServerMsg(data)
-      );
+      socketio.on('serverMsg', (data: InvokeAI.ServMsgResponse) => {
+        const { message } = data;
+        onServerMsg(message);
+      });
 
-      socketio.on('queueLength', (data: InvokeAI.ErrorResponse) =>
-        onServerMsg(data)
-      );
+      socketio.on('queueLength', (data: InvokeAI.ServMsgResponse) => {
+        const { message } = data;
+        onServerMsg(`Queue Length: ${message}`);
+      });
 
       socketio.on('generationResult', (data: InvokeAI.ImageResultResponse) =>
         onGenerationResult(data)

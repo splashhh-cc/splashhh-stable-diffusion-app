@@ -58,20 +58,17 @@ const StatusIndicator = () => {
     statusStyle = 'status-working';
   }
 
+  if (statusMessage.startsWith('Waiting')) {
+    statusStyle = 'status-waiting';
+  }
+
   if (statusMessage) {
-    if (isProcessing) {
+    if (isProcessing)
       if (totalIterations > 1) {
         statusMessage = `${t(
           statusMessage as keyof typeof t
         )} (${currentIteration}/${totalIterations})`;
       }
-    }
-
-    //   if (isWaitingForQueue) {
-    //     statusMessage = `${t(
-    //       statusMessage as keyof typeof t
-    //     )} (${currentIteration}/${totalIterations})`;
-    //   }
   }
 
   const tooltipLabel =
