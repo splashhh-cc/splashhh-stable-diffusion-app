@@ -1,6 +1,7 @@
 import base64
 import csv
 import glob
+import hmac
 import io
 import json
 import math
@@ -9,7 +10,7 @@ import os
 import shutil
 import traceback
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from threading import Event
 from uuid import uuid4
 
@@ -23,7 +24,7 @@ from flask import Flask, redirect, send_from_directory, request, make_response, 
 from flask_socketio import SocketIO
 from werkzeug.utils import secure_filename
 from eventlet.semaphore import Semaphore
-from hashlib import pbkdf2_hmac, shake_256
+from hashlib import pbkdf2_hmac, shake_256, sha256  # todo: consolidate hash functions
 
 from invokeai.backend.modules.get_canvas_generation_mode import (
     get_canvas_generation_mode,
@@ -50,7 +51,8 @@ if not os.path.isabs(args.outdir):
 
 # normalize the config directory relative to root
 if not os.path.isabs(opt.conf):
-    opt.conf = os.path.normpath(os.path.join(Globals.root,opt.conf))
+    opt.conf = os.path.normpath(os.path.join(Globals.root, opt.conf))
+
 
 class InvokeAIWebServer:
     def __init__(self, generate: Generate, gfpgan, codeformer, esrgan) -> None:
@@ -179,13 +181,40 @@ class InvokeAIWebServer:
         # Challenge
         @self.app.route("/get_challenge", methods=["get"])
         def get_challenge():
-            challenge = {
+            payload = {
+                # generate a random challenge
                 "challenge": 'challenge #' + str(uuid4()),
+                # difficulty
                 "difficulty": 2000,
+                # current time in utc + 1 min, encoded
+                "expires_utc": (datetime.utcnow() + timedelta(minutes=1)).isoformat(timespec='seconds'),
             }
+
+            challenge = {
+                "payload": {
+                    "challenge": payload['challenge'],
+                    "difficulty": payload['difficulty'],
+                    "expires_utc": payload['expires_utc'],
+                },
+                "signature": hmac.new(
+                    self.app.config['SECRET_KEY'].encode(),
+                    msg=str(payload).encode(),
+                    digestmod=sha256
+                ).hexdigest()
+            }
+
+            # verify the signature for the challenge
+            assert hmac.compare_digest(
+                challenge['signature'],
+                hmac.new(
+                    self.app.config['SECRET_KEY'].encode(),
+                    msg=str(payload).encode(),
+                    digestmod=sha256
+                ).hexdigest()
+            )
+
             # print the challenge
-            print(f">> Challenge requested: " + str(challenge))
-            session["challenge"] = challenge
+            print(f">> New Challenge requested: " + str(challenge.get('payload').get('challenge')))
             return make_response(challenge, 200)
 
         @self.app.route("/upload", methods=["POST"])
@@ -352,13 +381,13 @@ class InvokeAIWebServer:
         [
             os.makedirs(path, exist_ok=True)
             for path in [
-                self.result_path,
-                self.intermediate_path,
-                self.init_image_path,
-                self.mask_image_path,
-                self.temp_image_path,
-                self.thumbnail_image_path,
-            ]
+            self.result_path,
+            self.intermediate_path,
+            self.init_image_path,
+            self.mask_image_path,
+            self.temp_image_path,
+            self.thumbnail_image_path,
+        ]
         ]
 
     def load_socketio_listeners(self, socketio):
@@ -376,10 +405,10 @@ class InvokeAIWebServer:
             try:
                 if not search_folder:
                     socketio.emit(
-                    "foundModels",
-                    {'search_folder': None, 'found_models': None},
-                    to=request.sid
-                )
+                        "foundModels",
+                        {'search_folder': None, 'found_models': None},
+                        to=request.sid
+                    )
                 else:
                     search_folder, found_models = self.generate.model_manager.search_models(search_folder)
                     socketio.emit(
@@ -499,7 +528,7 @@ class InvokeAIWebServer:
                 print("\n")
 
         @socketio.on("requestSaveStagingAreaImageToGallery")
-        def save_temp_image_to_gallery(url, user_id: str =''):
+        def save_temp_image_to_gallery(url, user_id: str = ''):
             try:
                 if user_id != secure_filename(user_id):
                     raise ValueError("Invalid user_id")
@@ -708,10 +737,11 @@ class InvokeAIWebServer:
 
         @socketio.on("generateImage")
         def handle_generate_image_event(
-            generation_parameters, esrgan_parameters, facetool_parameters, user_id: str = '', solved_challenge: dict = None
+            generation_parameters, esrgan_parameters, facetool_parameters, user_id: str = '',
+            solved_challenge: dict = None
         ):
             try:
-                verify_challenge_solution(session, solved_challenge)
+                verify_challenge_solution(self.app.config['SECRET_KEY'], solved_challenge)
 
                 if user_id != secure_filename(user_id):
                     raise ValueError("Invalid user_id")
@@ -761,13 +791,14 @@ class InvokeAIWebServer:
                 print("\n")
 
         @socketio.on("runPostprocessing")
-        def handle_run_postprocessing(original_image, postprocessing_parameters, user_id: str = '', solved_challenge: dict = None
+        def handle_run_postprocessing(original_image, postprocessing_parameters, user_id: str = '',
+                                      solved_challenge: dict = None
                                       ):
             try:
                 print(
                     f'>> Postprocessing requested for "{original_image["url"]}": {postprocessing_parameters}'
                 )
-                verify_challenge_solution(session, solved_challenge)
+                verify_challenge_solution(self.app.config['SECRET_KEY'], solved_challenge)
 
                 analytics = init_analytics_post_item(postprocessing_parameters, user_id)
 
@@ -807,7 +838,7 @@ class InvokeAIWebServer:
 
                 if self.image_gen_semaphore.balance <= self.max_waiters:
                     analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
-                    write_analytics(self.result_path,analytics)
+                    write_analytics(self.result_path, analytics)
                     raise Exception("Too many concurrent requests. Please try again later.")
 
                 with self.acquire_emit_queue_len(self.image_gen_semaphore, request.sid):
@@ -845,7 +876,7 @@ class InvokeAIWebServer:
 
                     analytics["is_served"] = True
                     analytics["process_time_sec"] = round(time.time() - analytics["process_time_sec"], 2)
-                    write_analytics(self.result_path,analytics)
+                    write_analytics(self.result_path, analytics)
 
                 progress.set_current_status("common:statusSavingImage")
                 socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
@@ -962,7 +993,8 @@ class InvokeAIWebServer:
 
             req_sid = request.sid
 
-            analytics: dict = init_analytics_gen_item(generation_parameters, esrgan_parameters, facetool_parameters, user_id)
+            analytics: dict = init_analytics_gen_item(generation_parameters, esrgan_parameters, facetool_parameters,
+                                                      user_id)
 
             self.canceled.clear()
 
@@ -1142,7 +1174,6 @@ class InvokeAIWebServer:
                         to=req_sid,
                     )
 
-
                 if generation_parameters["progress_latents"]:
                     image = self.generate.sample_to_lowres_estimated_image(sample)
                     (width, height) = image.size
@@ -1303,7 +1334,7 @@ class InvokeAIWebServer:
                 generated_image_outdir = os.path.join((
                     self.result_path
                     if generation_parameters["generation_mode"]
-                    in ["txt2img", "img2img"]
+                       in ["txt2img", "img2img"]
                     else self.temp_image_path
                 ), user_id)
 
@@ -1368,7 +1399,7 @@ class InvokeAIWebServer:
 
             if self.image_gen_semaphore.balance <= self.max_waiters:
                 analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
-                write_analytics(self.result_path,analytics)
+                write_analytics(self.result_path, analytics)
                 raise Exception("Too many concurrent requests. Please try again later.")
 
             with self.acquire_emit_queue_len(self.image_gen_semaphore, request.sid):
@@ -1383,7 +1414,7 @@ class InvokeAIWebServer:
 
                 analytics["is_served"] = True
                 analytics["process_time_sec"] = round(time.time() - analytics["process_time_sec"], 2)
-                write_analytics(self.result_path,analytics)
+                write_analytics(self.result_path, analytics)
 
         except KeyboardInterrupt:
             # Clear the CUDA cache on an exception
@@ -1651,7 +1682,7 @@ class InvokeAIWebServer:
             traceback.print_exc()
             print("\n")
 
-    def get_image_path_from_url(self, url, user_id :str = ''):
+    def get_image_path_from_url(self, url, user_id: str = ''):
         """Given a url to an image used by the client, returns the absolute file path to that image"""
         try:
             if "init-images" in url:
@@ -1685,7 +1716,7 @@ class InvokeAIWebServer:
             traceback.print_exc()
             print("\n")
 
-    def get_url_from_image_path(self, path, user_id: str =''):
+    def get_url_from_image_path(self, path, user_id: str = ''):
         """Given an absolute file path to an image, returns the URL that the client can use to load the image"""
         try:
             if "init-images" in path:
@@ -1880,9 +1911,11 @@ def dataURL_to_image(dataURL: str) -> ImageType:
     )
     return image
 
+
 """
 Converts an image into a base64 image dataURL.
 """
+
 
 def image_to_dataURL(image: ImageType) -> str:
     buffered = io.BytesIO()
@@ -1891,7 +1924,6 @@ def image_to_dataURL(image: ImageType) -> str:
         buffered.getvalue()
     ).decode("UTF-8")
     return image_base64
-
 
 
 """
@@ -1959,7 +1991,7 @@ def save_thumbnail(
 
 
 # verify pow solution to a given challenge
-def verify_solution(challenge: str, solution: str, difficulty: int) -> bool:
+def verify_solution(challenge: str, difficulty: int, solution: str) -> bool:
     # the function should normalize a bytes array to a number between 0 and 1
     # output 1 will represent the maximum value of the input array
     def normalize_key(num: bytes) -> float:
@@ -1980,26 +2012,42 @@ def verify_solution(challenge: str, solution: str, difficulty: int) -> bool:
     return normalized_res < normalized_difficulty
 
 
-def verify_challenge_solution(session: dict, solved: dict) -> bool:
-    print('session: ', session)
+def verify_challenge_solution(sig_secret: str, solved: dict) -> bool:
     print('solved: ', solved)
 
-    try:
-        s_challenge: dict = session["challenge"]
-    except KeyError:
-        print('session cookie' + str(session))
-        raise ValueError("No challenge was found for the session.")
+    if not solved.get("payload"):
+        raise ValueError("The provided solution has no payload.")
+    if not solved.get("payload").get("challenge"):
+        raise ValueError("The provided solution['payload'] has no challenge.")
+    if not solved.get("payload").get("difficulty"):
+        raise ValueError("The provided solution has no difficulty field")
+    if not solved.get("payload").get("expires_utc"):
+        raise ValueError("The provided solution has no expires_utc field")
+    if not solved.get("solution"):
+        raise ValueError("The provided solution has no solution field")
 
-    if solved is None or solved.get("solution") is None:
-        raise ValueError("No solution for the challenge was provided.")
+    if not hmac.compare_digest(
+        solved['signature'],
+        hmac.new(
+            sig_secret.encode(),
+            msg=str(solved.get("payload")).encode(),
+            digestmod=sha256
+        ).hexdigest()
+    ):
+        raise ValueError("The provided solution signature is invalid.")
 
-    if s_challenge.get("challenge") != solved.get("challenge"):
-        raise ValueError("Session challenge string does not match to the provided challenge.")
+    # convert iso time string to time
+    expiration_time = datetime.fromisoformat(solved.get("payload").get("expires_utc"))
 
-    if s_challenge.get("difficulty") != solved.get("difficulty"):
-        raise ValueError("Session challenge difficulty does not match to the provided difficulty.")
+    # if the expiration time is expired, the solution is invalid
+    if expiration_time < datetime.utcnow():
+        raise ValueError("The provided solution has expired.")
 
-    if not verify_solution(solved.get("challenge"), solved.get("solution"), solved.get("difficulty")):
+    if not verify_solution(
+        solved.get("payload").get("challenge"),
+        solved.get("payload").get("difficulty"),
+        solved.get("solution")
+    ):
         raise ValueError("The provided solution for the challenge is not valid.")
 
     return True
@@ -2047,7 +2095,8 @@ def init_analytics_post_item(postprocessing_parameters, user_id: str) -> dict:
 def write_analytics(result_path, item):
     # Write analytics to CSV file
     filename = os.path.join(result_path, './analytics.csv')
-    fieldnames = ['req_time', 'is_served', 'queue_wait_time_sec', 'process_time_sec', 'img_num', 'event', 'event_detail1', 'event_detail2', 'event_detail3', 'agent', 'solution_time_ms', 'user_id']
+    fieldnames = ['req_time', 'is_served', 'queue_wait_time_sec', 'process_time_sec', 'img_num', 'event',
+                  'event_detail1', 'event_detail2', 'event_detail3', 'agent', 'solution_time_ms', 'user_id']
 
     if not os.path.exists(filename):
         with open(filename, 'w', newline='') as csvfile:
@@ -2073,4 +2122,3 @@ def write_analytics(result_path, item):
     #         solution_time_ms INTEGER
     #         user_id TEXT
     #     );
-

@@ -300,8 +300,12 @@ export declare type UploadOutpaintingMergeImagePayload = {
 };
 
 export declare type Challenge = {
-  challenge: string;
-  difficulty: number;
+  payload: {
+    challenge: string;
+    difficulty: number;
+    expires_utc: string;
+  };
+  signature: string;
   solution: string;
   guess_count: number;
   time_taken_ms: number;

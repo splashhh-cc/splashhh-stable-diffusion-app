@@ -33,6 +33,19 @@ const makeSocketIOEmitters = (
   // We need to dispatch actions to redux and get pieces of state from the store.
   const { dispatch, getState } = store;
 
+  async function solveChallengeIfNeeded() {
+    if (
+      getState().system.challenge === null ||
+      Date.now() >
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        new Date(getState().system.challenge.payload.expires_utc).getTime()
+    ) {
+      const solved = await solve_challenge(await getChallenge());
+      dispatch(setChallenge(solved));
+    }
+  }
+
   return {
     emitGenerateImage: async (generationMode: InvokeTabName) => {
       dispatch(setIsProcessing(true));
@@ -55,10 +68,7 @@ const makeSocketIOEmitters = (
           systemState,
         };
 
-      if (getState().system.challenge === null) {
-        const solved = await solve_challenge(await getChallenge());
-        dispatch(setChallenge(solved));
-      }
+      await solveChallengeIfNeeded();
 
       dispatch(generationRequested());
 
@@ -113,11 +123,9 @@ const makeSocketIOEmitters = (
       const esrganParameters = {
         upscale: [upscalingLevel, upscalingDenoising, upscalingStrength],
       };
-      const { user_id } = getState().system;
-      if (getState().system.challenge === null) {
-        const solved = await solve_challenge(await getChallenge());
-        dispatch(setChallenge(solved));
-      }
+
+      await solveChallengeIfNeeded();
+
       socketio.emit(
         'runPostprocessing',
         imageToProcess,
@@ -125,7 +133,7 @@ const makeSocketIOEmitters = (
           type: 'esrgan',
           ...esrganParameters,
         },
-        user_id,
+        getState().system.user_id,
         getState().system.challenge
       );
       dispatch(setChallenge(null));
@@ -144,12 +152,9 @@ const makeSocketIOEmitters = (
       const {
         postprocessing: { facetoolType, facetoolStrength, codeformerFidelity },
       } = getState();
-      const { user_id } = getState().system;
 
-      if (getState().system.challenge === null) {
-        const solved = await solve_challenge(await getChallenge());
-        dispatch(setChallenge(solved));
-      }
+      await solveChallengeIfNeeded();
+
       const facetoolParameters: Record<string, unknown> = {
         facetool_strength: facetoolStrength,
       };
@@ -165,7 +170,7 @@ const makeSocketIOEmitters = (
           type: facetoolType,
           ...facetoolParameters,
         },
-        user_id,
+        getState().system.user_id,
         getState().system.challenge
       );
       dispatch(setChallenge(null));

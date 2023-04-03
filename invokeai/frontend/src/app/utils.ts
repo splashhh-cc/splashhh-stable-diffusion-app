@@ -39,8 +39,8 @@ export async function getChallenge(): Promise<InvokeAI.Challenge> {
 // the function should return the solution to the challenge
 // difficulty is the expected number of guesses
 export async function solve_challenge(c: Challenge): Promise<Challenge> {
-  const challenge = c.challenge;
-  const difficulty = c.difficulty.valueOf();
+  const challenge = c.payload.challenge;
+  const difficulty = c.payload.difficulty.valueOf();
 
   let guess = 'as good as any';
   const normalized_difficulty: number = 1 / difficulty;
@@ -60,8 +60,7 @@ export async function solve_challenge(c: Challenge): Promise<Challenge> {
     if (normalized < normalized_difficulty) {
       const time_taken_ms = performance.now() - startTime;
       return {
-        challenge,
-        difficulty,
+        ...c,
         solution: guess,
         guess_count,
         time_taken_ms,
