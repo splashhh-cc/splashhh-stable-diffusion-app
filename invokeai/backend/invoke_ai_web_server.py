@@ -179,11 +179,12 @@ class InvokeAIWebServer:
         # Challenge
         @self.app.route("/get_challenge", methods=["get"])
         def get_challenge():
-            print(f">> Challenge requested")
             challenge = {
-                "challenge": 'hard-challenge #' + str(uuid4()),
+                "challenge": 'challenge #' + str(uuid4()),
                 "difficulty": 2000,
             }
+            # print the challenge
+            print(f">> Challenge requested: " + str(challenge))
             session["challenge"] = challenge
             return make_response(challenge, 200)
 
@@ -1980,8 +1981,8 @@ def verify_solution(challenge: str, solution: str, difficulty: int) -> bool:
 
 
 def verify_challenge_solution(session: dict, solved: dict) -> bool:
-    # print('session: ', session)
-    # print('solved: ', solved)
+    print('session: ', session)
+    print('solved: ', solved)
 
     try:
         s_challenge: dict = session["challenge"]
