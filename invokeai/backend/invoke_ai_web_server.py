@@ -143,7 +143,11 @@ class InvokeAIWebServer:
             __name__, static_url_path="", static_folder=frontend.__path__[0]
         )
 
-        print('>> Serving static files from:', self.app.static_folder)
+        if args.web_develop:
+            # print redirect message
+            print('>> Serving static will be redirected to http://127.0.0.1:5173')
+        else:
+            print('>> Serving static files from:', self.app.static_folder)
 
         # read the env variable SESSION_SECRET_KEY or generate a random one
         self.app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET_KEY', uuid4().hex)
