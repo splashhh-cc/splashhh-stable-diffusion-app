@@ -47,19 +47,23 @@ _Note: InvokeAI by Splashhh is rapidly evolving. Please use the
 [Issues](https://github.com/splashhh-cc/splashhh-stable-diffusion-app/issues) tab to report bugs and make feature
 requests. Be sure to use the provided templates. They will help us diagnose issues faster._
 
-# Getting Started with InvokeAI
+# Getting Started with Splashhh
 
 For full installation and upgrade instructions, please see:
 [InvokeAI Installation Overview](https://invoke-ai.github.io/InvokeAI/installation/)
 
-1. Go to the bottom of the [Latest Release Page](https://github.com/invoke-ai/InvokeAI/releases/latest)
-2. Download the .zip file for your OS (Windows/macOS/Linux).
-3. Unzip the file.
-4. If you are on Windows, double-click on the `install.bat` script. On macOS, open a Terminal window, drag the file `install.sh` from Finder into the Terminal, and press return. On Linux, run `install.sh`.
-5. Wait a while, until it is done.
-6. The folder where you ran the installer from will now be filled with lots of files. If you are on Windows, double-click on the `invoke.bat` file. On macOS, open a Terminal window, drag `invoke.sh` from the folder into the Terminal, and press return. On Linux, run `invoke.sh`
-7. Press 2 to open the "browser-based UI", press enter/return, wait a minute or two for Stable Diffusion to start up, then open your browser and go to http://localhost:9090.
-8. Type `banana sushi` in the box on the top left and click `Invoke`:
+1. `git clone https://github.com/splashhh-cc/splashhh-stable-diffusion-app.git`
+2. `export INVOKEAL_ROOT=~/splashhh-stable-diffusion-app/`
+3. `cd $INVOKEAL_ROOT`
+4. `python3 -m venv .venv --prompt Splashhh`
+5. `source .venv/bin/activate`
+6. `python -m pip install --upgrade pip`
+7. `pip install -e .[xformers] --use-pep517 --extra-index-url https://download.pytorch.org/whl/cu117`
+8. create a directory for the outputs eg. `mkdir ~/splashhh-run/outputs`
+9. run `invokeai-configure` and specify the output directory, prepare a Huggingface token if you want to use the HF models (recommended)
+10. run `invokeai --web --web_develop` and `cd invokeai/frontend && yarn && yarn run dev` from a separate terminal to develop
+11. run `invokeai --web --host 0.0.0.0 --port 9090 --no-internet` to run the web server without checking for updates
+
 
 
 For full documentation, please refer to the invoke-ai.github.io website: https://invoke-ai.github.io/InvokeAI/
