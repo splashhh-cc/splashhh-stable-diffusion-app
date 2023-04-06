@@ -69,7 +69,7 @@ class InvokeAIWebServer:
 
         # load control
         # concurrently allow number of image generation:
-        concurrent_gen = 1
+        concurrent_gen = 2
         self.image_gen_semaphore = Semaphore(concurrent_gen)
         max_waiters = 10
         self.max_waiters = concurrent_gen - max_waiters + 1
@@ -98,7 +98,7 @@ class InvokeAIWebServer:
         # increase quality during low load, the values will be added to the requested values
         self.quality_increase = {
             'generation_parameters': {
-                'steps': 5,
+                'steps': 10,
             },
         }
 
@@ -142,6 +142,8 @@ class InvokeAIWebServer:
         self.app = Flask(
             __name__, static_url_path="", static_folder=frontend.__path__[0]
         )
+
+        print('>> Serving static files from:', self.app.static_folder)
 
         # read the env variable SESSION_SECRET_KEY or generate a random one
         self.app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET_KEY', uuid4().hex)
