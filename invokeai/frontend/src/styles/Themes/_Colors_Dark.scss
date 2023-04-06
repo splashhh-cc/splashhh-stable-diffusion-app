@@ -3,10 +3,15 @@
   --white: rgb(255, 255, 255);
 
   // Accent Colors
-  --accent-color-dim: rgb(57, 25, 153);
-  --accent-color: rgb(80, 40, 200);
-  --accent-color-bright: rgb(104, 60, 230);
+  --accent-color-dim: rgb(84, 0, 0);
+  --accent-color: rgb(190, 1, 1);
+  --accent-color-bright: rgb(213, 1, 1);
   --accent-color-hover: var(--accent-color-bright);
+
+  //--accent-color-dim: rgb(57, 25, 153);
+  //--accent-color: rgb(80, 40, 200);
+  //--accent-color-bright: rgb(104, 60, 230);
+  //--accent-color-hover: var(--accent-color-bright);
 
   // App Colors
   --root-bg-color: rgb(10, 10, 10);

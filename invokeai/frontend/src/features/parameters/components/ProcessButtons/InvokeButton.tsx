@@ -23,8 +23,11 @@ export default function InvokeButton(props: InvokeButton) {
 
   const handleClickGenerate = () => {
     dispatch(generateImage(activeTabName));
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
   };
-
   const { t } = useTranslation();
 
   useHotkeys(
