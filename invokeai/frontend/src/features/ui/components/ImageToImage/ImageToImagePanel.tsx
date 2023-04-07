@@ -18,6 +18,8 @@ import PromptInput from 'features/parameters/components/PromptInput/PromptInput'
 import InvokeOptionsPanel from 'features/ui/components/InvokeParametersPanel';
 import { useTranslation } from 'react-i18next';
 import ImageToImageOptions from './ImageToImageOptions';
+import { useAppSelector } from 'app/storeHooks';
+import { isAdvancedModeSelector } from 'features/system/store/systemSelectors';
 
 export default function ImageToImagePanel() {
   const { t } = useTranslation();
@@ -58,16 +60,20 @@ export default function ImageToImagePanel() {
     },
   };
 
+  const { isAdvancedMode } = useAppSelector(isAdvancedModeSelector);
+
   return (
     <InvokeOptionsPanel>
       <Flex flexDir="column" rowGap="0.5rem">
         <PromptInput />
-        <NegativePromptInput />
+        {isAdvancedMode && <NegativePromptInput />}
       </Flex>
       <ProcessButtons />
-      <MainSettings />
+      {isAdvancedMode && <MainSettings />}
       <ImageToImageOptions />
-      <ParametersAccordion accordionInfo={imageToImageAccordions} />
+      {isAdvancedMode && (
+        <ParametersAccordion accordionInfo={imageToImageAccordions} />
+      )}
     </InvokeOptionsPanel>
   );
 }

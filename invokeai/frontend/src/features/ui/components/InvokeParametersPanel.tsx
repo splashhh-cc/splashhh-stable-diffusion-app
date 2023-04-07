@@ -192,7 +192,7 @@ const InvokeOptionsPanel = (props: Props) => {
               <div className="invoke-ai-logo-wrapper">
                 <img src={InvokeAILogo} alt="invoke-ai-logo" />
                 <h1>
-                  invoke <strong>ai</strong>
+                  Splas<strong>hhh</strong>
                 </h1>
               </div>
             )}

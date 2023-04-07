@@ -42,7 +42,7 @@ export interface GenerationState {
 const initialGenerationState: GenerationState = {
   cfgScale: 7.5,
   height: 512,
-  img2imgStrength: 0.75,
+  img2imgStrength: 0.6,
   infillMethod: 'patchmatch',
   iterations: 1,
   maskPath: '',

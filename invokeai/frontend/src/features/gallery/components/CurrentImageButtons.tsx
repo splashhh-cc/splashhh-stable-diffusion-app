@@ -23,8 +23,14 @@ import {
 } from 'features/parameters/store/generationSlice';
 import { setAllPostProcessingParameters } from 'features/parameters/store/postprocessingSlice';
 import { postprocessingSelector } from 'features/parameters/store/postprocessingSelectors';
-import { systemSelector } from 'features/system/store/systemSelectors';
-import { SystemState } from 'features/system/store/systemSlice';
+import {
+  isAdvancedModeSelector,
+  systemSelector,
+} from 'features/system/store/systemSelectors';
+import {
+  setIsAdvancedMode,
+  SystemState,
+} from 'features/system/store/systemSlice';
 import {
   activeTabNameSelector,
   uiSelector,
@@ -48,6 +54,7 @@ import {
   FaShare,
   FaShareAlt,
   FaTrash,
+  FaVial,
 } from 'react-icons/fa';
 import { gallerySelector } from '../store/gallerySelectors';
 import DeleteImageModal from './DeleteImageModal';
@@ -396,6 +403,11 @@ const CurrentImageButtons = () => {
     dispatch(setIsLightboxOpen(!isLightboxOpen));
   };
 
+  const { isAdvancedMode } = useAppSelector(isAdvancedModeSelector);
+  const handleToggleAdvancedMode = () => {
+    dispatch(setIsAdvancedMode(!isAdvancedMode));
+  };
+
   return (
     <div className="current-image-options">
       <ButtonGroup isAttached={true}>
@@ -545,25 +557,38 @@ const CurrentImageButtons = () => {
         </IAIPopover>
       </ButtonGroup>
 
+      {isAdvancedMode && (
+        <ButtonGroup isAttached={true}>
+          <IAIIconButton
+            icon={<FaCode />}
+            tooltip={`${t('parameters.info')} (I)`}
+            aria-label={`${t('parameters.info')} (I)`}
+            data-selected={shouldShowImageDetails}
+            onClick={handleClickShowImageDetails}
+          />
+        </ButtonGroup>
+      )}
+
       <ButtonGroup isAttached={true}>
         <IAIIconButton
-          icon={<FaCode />}
-          tooltip={`${t('parameters.info')} (I)`}
-          aria-label={`${t('parameters.info')} (I)`}
-          data-selected={shouldShowImageDetails}
-          onClick={handleClickShowImageDetails}
+          icon={<FaVial />}
+          tooltip="Toggle Advanced Mode"
+          aria-label="Advanced Mode"
+          onClick={handleToggleAdvancedMode}
         />
       </ButtonGroup>
 
-      <DeleteImageModal image={currentImage}>
-        <IAIIconButton
-          icon={<FaTrash />}
-          tooltip={`${t('parameters.deleteImage')} (Del)`}
-          aria-label={`${t('parameters.deleteImage')} (Del)`}
-          isDisabled={true || !currentImage || !isConnected || isProcessing}
-          style={{ backgroundColor: 'var(--btn-delete-image)' }}
-        />
-      </DeleteImageModal>
+      {isAdvancedMode && (
+        <DeleteImageModal image={currentImage}>
+          <IAIIconButton
+            icon={<FaTrash />}
+            tooltip={`${t('parameters.deleteImage')} (Del)`}
+            aria-label={`${t('parameters.deleteImage')} (Del)`}
+            isDisabled={true || !currentImage || !isConnected || isProcessing}
+            style={{ backgroundColor: 'var(--btn-delete-image)' }}
+          />
+        </DeleteImageModal>
+      )}
     </div>
   );
 };

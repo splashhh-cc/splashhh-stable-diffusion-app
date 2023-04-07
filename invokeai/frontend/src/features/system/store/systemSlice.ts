@@ -58,6 +58,7 @@ export interface SystemState
   challenge: Challenge | null;
   max_limits: MaxLimits;
   isWelcomeModalOpen: boolean;
+  isAdvancedMode: boolean;
   cancelOptions: {
     cancelType: CancelType;
     cancelAfter: number | null;
@@ -113,6 +114,7 @@ const initialSystemState: SystemState = {
     },
   },
   isWelcomeModalOpen: true,
+  isAdvancedMode: false,
   cancelOptions: {
     cancelType: 'immediate',
     cancelAfter: null,
@@ -296,6 +298,9 @@ export const systemSlice = createSlice({
     setWelcomeModal: (state, action: PayloadAction<boolean>) => {
       state.isWelcomeModalOpen = action.payload;
     },
+    setIsAdvancedMode: (state, action: PayloadAction<boolean>) => {
+      state.isAdvancedMode = action.payload;
+    },
     setCancelType: (state, action: PayloadAction<CancelType>) => {
       state.cancelOptions.cancelType = action.payload;
     },
@@ -339,6 +344,7 @@ export const {
   setChallenge,
   setMaxLimits,
   setWelcomeModal,
+  setIsAdvancedMode,
   setCancelType,
   setCancelAfter,
 } = systemSlice.actions;

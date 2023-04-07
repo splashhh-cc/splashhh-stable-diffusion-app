@@ -1,6 +1,7 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from 'app/store';
 import { isEqual, reduce, pickBy } from 'lodash';
+import { SystemState } from './systemSlice';
 
 export const systemSelector = (state: RootState) => state.system;
 
@@ -41,6 +42,20 @@ export const diffusersModelsSelector = createSelector(
     });
 
     return diffusersModels;
+  },
+  {
+    memoizeOptions: {
+      resultEqualityCheck: isEqual,
+    },
+  }
+);
+
+export const isAdvancedModeSelector = createSelector(
+  systemSelector,
+  (system: SystemState) => {
+    return {
+      isAdvancedMode: system.isAdvancedMode,
+    };
   },
   {
     memoizeOptions: {

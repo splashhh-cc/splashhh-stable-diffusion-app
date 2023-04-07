@@ -17,6 +17,8 @@ import NegativePromptInput from 'features/parameters/components/PromptInput/Nega
 import PromptInput from 'features/parameters/components/PromptInput/PromptInput';
 import InvokeOptionsPanel from 'features/ui/components/InvokeParametersPanel';
 import { useTranslation } from 'react-i18next';
+import { useAppSelector } from 'app/storeHooks';
+import { isAdvancedModeSelector } from 'features/system/store/systemSelectors';
 
 export default function TextToImagePanel() {
   const { t } = useTranslation();
@@ -57,15 +59,19 @@ export default function TextToImagePanel() {
     },
   };
 
+  const { isAdvancedMode } = useAppSelector(isAdvancedModeSelector);
+
   return (
     <InvokeOptionsPanel>
       <Flex flexDir="column" rowGap="0.5rem">
         <PromptInput />
-        <NegativePromptInput />
+        {isAdvancedMode && <NegativePromptInput />}
       </Flex>
       <ProcessButtons />
-      <MainSettings />
-      <ParametersAccordion accordionInfo={textToImageAccordions} />
+      {isAdvancedMode && <MainSettings />}
+      {isAdvancedMode && (
+        <ParametersAccordion accordionInfo={textToImageAccordions} />
+      )}
     </InvokeOptionsPanel>
   );
 }
