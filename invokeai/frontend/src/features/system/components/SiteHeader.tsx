@@ -56,9 +56,9 @@ const SiteHeader = () => {
 
         {/*<ModelManagerModal>
           <IAIIconButton
-            aria-label={t('modelmanager:modelManager')}
-            tooltip={t('modelmanager:modelManager')}
-            size={'sm'}
+            aria-label={t('modelManager.modelManager')}
+            tooltip={t('modelManager.modelManager')}
+            size="sm"
             variant="link"
             data-variant="link"
             fontSize={20}
@@ -85,9 +85,9 @@ const SiteHeader = () => {
 
         <HotkeysModal>
           <IAIIconButton
-            aria-label={t('common:hotkeysLabel')}
-            tooltip={t('common:hotkeysLabel')}
-            size={'sm'}
+            aria-label={t('common.hotkeysLabel')}
+            tooltip={t('common.hotkeysLabel')}
+            size="sm"
             variant="link"
             data-variant="link"
             fontSize={20}
@@ -100,12 +100,12 @@ const SiteHeader = () => {
         <LanguagePicker />
 
         <IAIIconButton
-          aria-label={t('common:reportBugLabel')}
-          tooltip={t('common:reportBugLabel')}
+          aria-label={t('common.reportBugLabel')}
+          tooltip={t('common.reportBugLabel')}
           variant="link"
           data-variant="link"
           fontSize={20}
-          size={'sm'}
+          size="sm"
           icon={
             <Link isExternal href="http://github.com/invoke-ai/InvokeAI/issues">
               <FaBug />
@@ -114,8 +114,8 @@ const SiteHeader = () => {
         />
 
         <IAIIconButton
-          aria-label={t('common:githubLabel')}
-          tooltip={t('common:githubLabel')}
+          aria-label={t('common.githubLabel')}
+          tooltip={t('common.githubLabel')}
           variant="link"
           data-variant="link"
           fontSize={20}
@@ -131,13 +131,14 @@ const SiteHeader = () => {
           }
         />
 
-        {/*<IAIIconButton
-          aria-label={t('common:discordLabel')}
-          tooltip={t('common:discordLabel')}
+        {/*
+        <IAIIconButton
+          aria-label={t('common.discordLabel')}
+          tooltip={t('common.discordLabel')}
           variant="link"
           data-variant="link"
           fontSize={20}
-          size={'sm'}
+          size="sm"
           icon={
             <Link isExternal href="https://discord.gg/ZmtBAhwWhy">
               <FaDiscord />
@@ -148,8 +149,8 @@ const SiteHeader = () => {
         <Hide below="md">
           <SettingsModal>
             <IAIIconButton
-              aria-label={t('common:settingsLabel')}
-              tooltip={t('common:settingsLabel')}
+              aria-label={t('common.settingsLabel')}
+              tooltip={t('common.settingsLabel')}
               variant="link"
               data-variant="link"
               fontSize={22}
@@ -173,6 +174,18 @@ const SiteHeader = () => {
             />
           </WelcomeModal>
         </Hide>
+
+        {/*<SettingsModal>
+          <IAIIconButton
+            aria-label={t('common.settingsLabel')}
+            tooltip={t('common.settingsLabel')}
+            variant="link"
+            data-variant="link"
+            fontSize={22}
+            size="sm"
+            icon={<MdSettings />}
+          />
+        </SettingsModal>*/}
       </div>
     </div>
   );

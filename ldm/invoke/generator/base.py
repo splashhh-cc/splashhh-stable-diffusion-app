@@ -64,6 +64,7 @@ class Generator:
 
     def generate(self,prompt,init_image,width,height,sampler, iterations=1,seed=None,
                  image_callback=None, step_callback=None, threshold=0.0, perlin=0.0,
+                 h_symmetry_time_pct=None, v_symmetry_time_pct=None,
                  safety_checker:dict=None,
                  free_gpu_mem: bool=False,
                  **kwargs):
@@ -81,6 +82,8 @@ class Generator:
             step_callback = step_callback,
             threshold     = threshold,
             perlin        = perlin,
+            h_symmetry_time_pct     = h_symmetry_time_pct,
+            v_symmetry_time_pct     = v_symmetry_time_pct,
             attention_maps_callback = attention_maps_callback,
             **kwargs
         )
@@ -123,7 +126,7 @@ class Generator:
                 seed = self.new_seed()
 
                 # Free up memory from the last generation.
-                clear_cuda_cache = kwargs['clear_cuda_cache'] or None
+                clear_cuda_cache = kwargs['clear_cuda_cache'] if 'clear_cuda_cache' in kwargs else None
                 if clear_cuda_cache is not None:
                     clear_cuda_cache()
 
@@ -134,17 +137,9 @@ class Generator:
         Given samples returned from a sampler, converts
         it into a PIL Image
         """
-        x_samples = self.model.decode_first_stage(samples)
-        x_samples = torch.clamp((x_samples + 1.0) / 2.0, min=0.0, max=1.0)
-        if len(x_samples) != 1:
-            raise Exception(
-                f'>> expected to get a single image, but got {len(x_samples)}')
-        x_sample = 255.0 * rearrange(
-            x_samples[0].cpu().numpy(), 'c h w -> h w c'
-        )
-        return Image.fromarray(x_sample.astype(np.uint8))
-
-        # write an approximate RGB image from latent samples for a single step to PNG
+        with torch.inference_mode():
+            image = self.model.decode_latents(samples)
+        return self.model.numpy_to_pil(image)[0]
 
     def repaste_and_color_correct(self, result: Image.Image, init_image: Image.Image, init_mask: Image.Image, mask_blur_radius: int = 8) -> Image.Image:
         if init_image is None or init_mask is None:
@@ -247,11 +242,14 @@ class Generator:
         fixdevice = 'cpu' if (self.model.device.type == 'mps') else self.model.device
         # limit noise to only the diffusion image channels, not the mask channels
         input_channels = min(self.latent_channels, 4)
+        # round up to the nearest block of 8
+        temp_width = int((width + 7) / 8) * 8
+        temp_height = int((height + 7) / 8) * 8
         noise = torch.stack([
-            rand_perlin_2d((height, width),
+            rand_perlin_2d((temp_height, temp_width),
                            (8, 8),
                            device = self.model.device).to(fixdevice) for _ in range(input_channels)], dim=0).to(self.model.device)
-        return noise
+        return noise[0:4, 0:height, 0:width]
 
     def new_seed(self):
         self.seed = random.randrange(0, np.iinfo(np.uint32).max)
@@ -333,7 +331,6 @@ class Generator:
         if self.caution_img:
             return self.caution_img
         path = Path(web_assets.__path__[0]) / CAUTION_IMG
-        print(f'DEBUG: path to caution = {path}')
         caution = Image.open(path)
         self.caution_img = caution.resize((caution.width // 2, caution.height //2))
         return self.caution_img

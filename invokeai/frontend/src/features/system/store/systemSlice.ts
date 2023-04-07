@@ -25,6 +25,8 @@ export type ReadinessPayload = {
 
 export type InProgressImageType = 'none' | 'full-res' | 'latents';
 
+export type CancelType = 'immediate' | 'scheduled';
+
 export interface SystemState
   extends InvokeAI.SystemStatus,
     InvokeAI.SystemConfig {
@@ -56,6 +58,10 @@ export interface SystemState
   challenge: Challenge | null;
   max_limits: MaxLimits;
   isWelcomeModalOpen: boolean;
+  cancelOptions: {
+    cancelType: CancelType;
+    cancelAfter: number | null;
+  };
 }
 
 const initialSystemState: SystemState = {
@@ -69,13 +75,13 @@ const initialSystemState: SystemState = {
   isESRGANAvailable: true,
   socketId: '',
   shouldConfirmOnDelete: true,
-  openAccordions: [],
+  openAccordions: [0],
   currentStep: 0,
   totalSteps: 0,
   currentIteration: 0,
   totalIterations: 0,
   currentStatus: i18n.isInitialized
-    ? i18n.t('common:statusDisconnected')
+    ? i18n.t('common.statusDisconnected')
     : 'Disconnected',
   currentStatusHasSteps: false,
   model: '',
@@ -107,6 +113,10 @@ const initialSystemState: SystemState = {
     },
   },
   isWelcomeModalOpen: true,
+  cancelOptions: {
+    cancelType: 'immediate',
+    cancelAfter: null,
+  },
 };
 
 export const systemSlice = createSlice({
@@ -137,15 +147,15 @@ export const systemSlice = createSlice({
       state.currentIteration = 0;
       state.totalIterations = 0;
       state.currentStatusHasSteps = false;
-      state.currentStatus = i18n.t('common:statusError');
+      state.currentStatus = i18n.t('common.statusError');
       state.wasErrorSeen = false;
     },
     errorSeen: (state) => {
       state.hasError = false;
       state.wasErrorSeen = true;
       state.currentStatus = state.isConnected
-        ? i18n.t('common:statusConnected')
-        : i18n.t('common:statusDisconnected');
+        ? i18n.t('common.statusConnected')
+        : i18n.t('common.statusDisconnected');
     },
     addLogEntry: (
       state,
@@ -206,7 +216,7 @@ export const systemSlice = createSlice({
       state.currentIteration = 0;
       state.totalIterations = 0;
       state.currentStatusHasSteps = false;
-      state.currentStatus = i18n.t('common:statusProcessingCanceled');
+      state.currentStatus = i18n.t('common.statusProcessingCanceled');
     },
     generationRequested: (state) => {
       state.isProcessing = true;
@@ -216,7 +226,7 @@ export const systemSlice = createSlice({
       state.currentIteration = 0;
       state.totalIterations = 0;
       state.currentStatusHasSteps = false;
-      state.currentStatus = i18n.t('common:statusPreparing');
+      state.currentStatus = i18n.t('common.statusPreparing');
     },
     setModelList: (
       state,
@@ -228,7 +238,19 @@ export const systemSlice = createSlice({
       state.isCancelable = action.payload;
     },
     modelChangeRequested: (state) => {
-      state.currentStatus = i18n.t('common:statusLoadingModel');
+      state.currentStatus = i18n.t('common.statusLoadingModel');
+      state.isCancelable = false;
+      state.isProcessing = true;
+      state.currentStatusHasSteps = false;
+    },
+    modelConvertRequested: (state) => {
+      state.currentStatus = i18n.t('common.statusConvertingModel');
+      state.isCancelable = false;
+      state.isProcessing = true;
+      state.currentStatusHasSteps = false;
+    },
+    modelMergingRequested: (state) => {
+      state.currentStatus = i18n.t('common.statusMergingModels');
       state.isCancelable = false;
       state.isProcessing = true;
       state.currentStatusHasSteps = false;
@@ -274,6 +296,12 @@ export const systemSlice = createSlice({
     setWelcomeModal: (state, action: PayloadAction<boolean>) => {
       state.isWelcomeModalOpen = action.payload;
     },
+    setCancelType: (state, action: PayloadAction<CancelType>) => {
+      state.cancelOptions.cancelType = action.payload;
+    },
+    setCancelAfter: (state, action: PayloadAction<number | null>) => {
+      state.cancelOptions.cancelAfter = action.payload;
+    },
   },
 });
 
@@ -296,6 +324,8 @@ export const {
   setModelList,
   setIsCancelable,
   modelChangeRequested,
+  modelConvertRequested,
+  modelMergingRequested,
   setSaveIntermediatesInterval,
   setEnableImageDebugging,
   generationRequested,
@@ -309,6 +339,8 @@ export const {
   setChallenge,
   setMaxLimits,
   setWelcomeModal,
+  setCancelType,
+  setCancelAfter,
 } = systemSlice.actions;
 
 export default systemSlice.reducer;

@@ -17,6 +17,9 @@ import { ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import IAISlider from 'common/components/IAISlider';
 import { Flex } from '@chakra-ui/react';
+import UpscaleDenoisingStrength from './UpscaleDenoisingStrength';
+import UpscaleStrength from './UpscaleStrength';
+import UpscaleScale from './UpscaleScale';
 
 const parametersSelector = createSelector(
   [postprocessingSelector, systemSelector],
@@ -64,7 +67,7 @@ const UpscaleSettings = () => {
     <Flex flexDir="column" rowGap="1rem" minWidth="20rem">
       <IAISelect
         isDisabled={!isESRGANAvailable}
-        label={t('parameters:scale')}
+        label={t('parameters.scale')}
         value={upscalingLevel}
         onChange={handleChangeLevel}
         validValues={UPSCALING_LEVELS.filter(
@@ -72,7 +75,7 @@ const UpscaleSettings = () => {
         )}
       />
       <IAISlider
-        label={t('parameters:denoisingStrength')}
+        label={t('parameters.denoisingStrength')}
         value={upscalingDenoising}
         min={0}
         max={1}
@@ -89,7 +92,7 @@ const UpscaleSettings = () => {
         isResetDisabled={!isESRGANAvailable}
       />
       <IAISlider
-        label={`${t('parameters:upscale')} ${t('parameters:strength')}`}
+        label={`${t('parameters.upscale')} ${t('parameters.strength')}`}
         value={upscalingStrength}
         min={0}
         max={1}

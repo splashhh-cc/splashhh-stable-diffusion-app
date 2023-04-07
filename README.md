@@ -9,8 +9,6 @@
 
 [![CI checks on main badge]][CI checks on main link]
 
-[![github open issues badge]][github open issues link] [![github open prs badge]][github open prs link]
-
 [CI checks on main badge]: https://flat.badgen.net/github/checks/splashhh-cc/splashhh-stable-diffusion-app/main?label=CI%20status%20on%20main&cache=900&icon=github
 [CI checks on main link]: https://github.com/splashhh-cc/splashhh-stable-diffusion-app/actions/workflows/test-invoke-conda.yml
 [github forks badge]: https://flat.badgen.net/github/forks/splashhh-cc/splashhh-stable-diffusion-appicon=github
@@ -21,7 +19,6 @@
 [github open prs link]: https://github.com/splashhh-cc/splashhh-stable-diffusion-app/pulls?q=is%3Apr+is%3Aopen
 [github stars badge]: https://flat.badgen.net/github/stars/splashhh-cc/splashhh-stable-diffusion-app?icon=github
 [github stars link]: https://github.com/splashhh-cc/splashhh-stable-diffusion-app/stargazers
-
 [latest release badge]: https://flat.badgen.net/github/release/splashhh-cc/splashhh-stable-diffusion-app/development?icon=github
 [latest release link]: https://github.com/splashhh-cc/splashhh-stable-diffusion-app/releases
 </div>
@@ -86,7 +83,6 @@ For full documentation, please refer to the invoke-ai.github.io website: https:/
 - [Variations](https://invoke-ai.github.io/InvokeAI/features/VARIATIONS/)
 - [Personalizing Text-to-Image Generation](https://invoke-ai.github.io/InvokeAI/features/TEXTUAL_INVERSION/)
 - [Simplified API for text to image generation](https://invoke-ai.github.io/InvokeAI/features/OTHER/#simplified-api)
-
 - *Support for both ckpt and diffusers models*
 - *SD 2.0, 2.1 support*
 - *Noise Control & Tresholding*
@@ -105,4 +101,3 @@ For full documentation, please refer to the invoke-ai.github.io website: https:/
 
 Please check out our **[Q&A](https://invoke-ai.github.io/InvokeAI/help/TROUBLESHOOT/#faq)** to get solutions for common installation
 problems and other issues.
-

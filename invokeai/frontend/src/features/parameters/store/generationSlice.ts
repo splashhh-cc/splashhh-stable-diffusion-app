@@ -5,6 +5,7 @@ import { getPromptAndNegative } from 'common/util/getPromptAndNegative';
 import promptToString from 'common/util/promptToString';
 import { seedWeightsToString } from 'common/util/seedWeightPairs';
 import { default_prompt } from 'app/prompts';
+import { clamp } from 'lodash';
 
 export interface GenerationState {
   cfgScale: number;
@@ -33,6 +34,9 @@ export interface GenerationState {
   tileSize: number;
   variationAmount: number;
   width: number;
+  shouldUseSymmetry: boolean;
+  horizontalSymmetrySteps: number;
+  verticalSymmetrySteps: number;
 }
 
 const initialGenerationState: GenerationState = {
@@ -61,6 +65,9 @@ const initialGenerationState: GenerationState = {
   tileSize: 32,
   variationAmount: 0.1,
   width: 512,
+  shouldUseSymmetry: false,
+  horizontalSymmetrySteps: 0,
+  verticalSymmetrySteps: 0,
 };
 
 const initialState: GenerationState = initialGenerationState;
@@ -93,6 +100,18 @@ export const generationSlice = createSlice({
     },
     setSteps: (state, action: PayloadAction<number>) => {
       state.steps = action.payload;
+    },
+    clampSymmetrySteps: (state) => {
+      state.horizontalSymmetrySteps = clamp(
+        state.horizontalSymmetrySteps,
+        0,
+        state.steps
+      );
+      state.verticalSymmetrySteps = clamp(
+        state.verticalSymmetrySteps,
+        0,
+        state.steps
+      );
     },
     setCfgScale: (state, action: PayloadAction<number>) => {
       state.cfgScale = action.payload;
@@ -283,7 +302,6 @@ export const generationSlice = createSlice({
         state.perlin = perlin;
       }
       if (typeof seamless === 'boolean') state.seamless = seamless;
-      // if (typeof hires_fix === 'boolean') state.hiresFix = hires_fix; // TODO: Needs to be fixed after reorg
       if (width) state.width = width;
       if (height) state.height = height;
 
@@ -326,10 +344,20 @@ export const generationSlice = createSlice({
     setInfillMethod: (state, action: PayloadAction<string>) => {
       state.infillMethod = action.payload;
     },
+    setShouldUseSymmetry: (state, action: PayloadAction<boolean>) => {
+      state.shouldUseSymmetry = action.payload;
+    },
+    setHorizontalSymmetrySteps: (state, action: PayloadAction<number>) => {
+      state.horizontalSymmetrySteps = action.payload;
+    },
+    setVerticalSymmetrySteps: (state, action: PayloadAction<number>) => {
+      state.verticalSymmetrySteps = action.payload;
+    },
   },
 });
 
 export const {
+  clampSymmetrySteps,
   clearInitialImage,
   resetParametersState,
   resetSeed,
@@ -363,6 +391,9 @@ export const {
   setTileSize,
   setVariationAmount,
   setWidth,
+  setShouldUseSymmetry,
+  setHorizontalSymmetrySteps,
+  setVerticalSymmetrySteps,
 } = generationSlice.actions;
 
 export default generationSlice.reducer;

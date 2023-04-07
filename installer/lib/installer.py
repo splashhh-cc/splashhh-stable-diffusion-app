@@ -241,14 +241,18 @@ class InvokeAiInstance:
 
         from plumbum import FG, local
 
+        # Note that we're installing pinned versions of torch and
+        # torchvision here, which *should* correspond to what is
+        # in pyproject.toml. This is to prevent torch 2.0 from
+        # being installed and immediately uninstalled and replaced with 1.13
         pip = local[self.pip]
 
         (
             pip[
                 "install",
                 "--require-virtualenv",
-                "torch",
-                "torchvision",
+                "torch~=1.13.1",
+                "torchvision~=0.14.1",
                 "--force-reinstall",
                 "--find-links" if find_links is not None else None,
                 find_links,
@@ -336,7 +340,8 @@ class InvokeAiInstance:
             elif el in ['-y','--yes','--yes-to-all']:
                 new_argv.append(el)
         sys.argv = new_argv
-
+        
+        import requests  # to catch download exceptions
         from messages import introduction
 
         introduction()
@@ -346,7 +351,21 @@ class InvokeAiInstance:
         # NOTE: currently the config script does its own arg parsing! this means the command-line switches
         # from the installer will also automatically propagate down to the config script.
         # this may change in the future with config refactoring!
-        invokeai_configure.main()
+        succeeded = False
+        try:
+            invokeai_configure.main()
+            succeeded = True
+        except requests.exceptions.ConnectionError as e:
+            print(f'\nA network error was encountered during configuration and download: {str(e)}')
+        except OSError as e:
+            print(f'\nAn OS error was encountered during configuration and download: {str(e)}')
+        except Exception as e:
+            print(f'\nA problem was encountered during the configuration and download steps: {str(e)}')
+        finally:
+            if not succeeded:
+                print('To try again, find the "invokeai" directory, run the script "invoke.sh" or "invoke.bat"')
+                print('and choose option 7 to fix a broken install, optionally followed by option 5 to install models.')
+                print('Alternatively you can relaunch the installer.')
 
     def install_user_scripts(self):
         """
@@ -363,6 +382,9 @@ class InvokeAiInstance:
             dest = self.runtime / f"{script}.{ext}"
             shutil.copy(src, dest)
             os.chmod(dest, 0o0755)
+
+        if OS == "Linux":
+            shutil.copy(Path(__file__).parents[1] / "templates" / "dialogrc", self.runtime / '.dialogrc')
 
     def update(self):
         pass

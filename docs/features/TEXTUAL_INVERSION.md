@@ -154,8 +154,11 @@ training sets will converge with 2000-3000 steps.
 
 This adjusts how many training images are processed simultaneously in
 each step. Higher values will cause the training process to run more
-quickly, but use more memory. The default size will run with GPUs with
-as little as 12 GB.
+quickly, but use more memory. The default size is selected based on
+whether you have the `xformers` memory-efficient attention library
+installed. If `xformers` is available, the batch size will be 8,
+otherwise 3.  These values were chosen to allow training to run with
+GPUs with as little as 12 GB VRAM.
 
 ### Learning rate
 
@@ -172,8 +175,10 @@ learning rate to improve performance.
 
 ### Use xformers acceleration
 
-This will activate XFormers memory-efficient attention. You need to
-have XFormers installed for this to have an effect.
+This will activate XFormers memory-efficient attention, which will
+reduce memory requirements by half or more and allow you to select a
+higher batch size. You need to have XFormers installed for this to
+have an effect.
 
 ### Learning rate scheduler
 
@@ -249,6 +254,67 @@ invokeai-ti \
        --mixed_precision=fp16 \
        --only_save_embeds
 ```
+
+## Using Distributed Training
+
+If you have multiple GPUs on one machine, or a cluster of GPU-enabled
+machines, you can activate distributed training. See the [HuggingFace
+Accelerate pages](https://huggingface.co/docs/accelerate/index) for
+full information, but the basic recipe is:
+
+1. Enter the InvokeAI developer's console command line by selecting
+option [8] from the `invoke.sh`/`invoke.bat` script.
+
+2. Configurate Accelerate using `accelerate config`:
+```sh
+accelerate config
+```
+This will guide you through the configuration process, including
+specifying how many machines you will run training on and the number
+of GPUs pe rmachine.
+
+You only need to do this once.
+
+3. Launch training from the command line using `accelerate launch`. Be sure
+that your current working directory is the InvokeAI root directory (usually
+named `invokeai` in your home directory):
+
+```sh
+accelerate launch .venv/bin/invokeai-ti \
+       --model=stable-diffusion-1.5 \
+       --resolution=512 \
+       --learnable_property=object \
+       --initializer_token='*' \
+       --placeholder_token='<shraddha>' \
+       --train_data_dir=/home/lstein/invokeai/text-inversion-training-data/shraddha \
+       --output_dir=/home/lstein/invokeai/text-inversion-training/shraddha \
+       --scale_lr \
+       --train_batch_size=10 \
+       --gradient_accumulation_steps=4 \
+       --max_train_steps=2000 \
+       --learning_rate=0.0005 \
+       --lr_scheduler=constant \
+       --mixed_precision=fp16 \
+       --only_save_embeds
+```
+
+## Using Embeddings
+
+After training completes, the resultant embeddings will be saved into your `$INVOKEAI_ROOT/embeddings/<trigger word>/learned_embeds.bin`.
+
+These will be automatically loaded when you start InvokeAI.
+
+Add the trigger word, surrounded by angle brackets, to use that embedding. For example, if your trigger word was `terence`, use `<terence>` in prompts. This is the same syntax used by the HuggingFace concepts library.
+
+**Note:** `.pt` embeddings do not require the angle brackets.
+
+## Troubleshooting
+
+### `Cannot load embedding for <trigger>. It was trained on a model with token dimension 1024, but the current model has token dimension 768`
+
+Messages like this indicate you trained the embedding on a different base model than the currently selected one.
+
+For example, in the error above, the training was done on SD2.1 (768x768) but it was used on SD1.5 (512x512).
 
 ## Reading
 

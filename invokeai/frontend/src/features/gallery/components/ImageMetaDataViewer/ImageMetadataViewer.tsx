@@ -12,6 +12,7 @@ import * as InvokeAI from 'app/invokeai';
 import { useAppDispatch } from 'app/storeHooks';
 import promptToString from 'common/util/promptToString';
 import { seedWeightsToString } from 'common/util/seedWeightPairs';
+import useSetBothPrompts from 'features/parameters/hooks/usePrompt';
 import {
   setCfgScale,
   setHeight,
@@ -19,7 +20,6 @@ import {
   setInitialImage,
   setMaskPath,
   setPerlin,
-  setPrompt,
   setSampler,
   setSeamless,
   setSeed,
@@ -71,8 +71,8 @@ const MetadataItem = ({
           <IconButton
             aria-label="Use this parameter"
             icon={<IoArrowUndoCircleOutline />}
-            size={'xs'}
-            variant={'ghost'}
+            size="xs"
+            variant="ghost"
             fontSize={20}
             onClick={onClick}
           />
@@ -83,23 +83,23 @@ const MetadataItem = ({
           <IconButton
             aria-label={`Copy ${label}`}
             icon={<FaCopy />}
-            size={'xs'}
-            variant={'ghost'}
+            size="xs"
+            variant="ghost"
             fontSize={14}
             onClick={() => navigator.clipboard.writeText(value.toString())}
           />
         </Tooltip>
       )}
       <Flex direction={labelPosition ? 'column' : 'row'}>
-        <Text fontWeight={'semibold'} whiteSpace={'pre-wrap'} pr={2}>
+        <Text fontWeight="semibold" whiteSpace="pre-wrap" pr={2}>
           {label}:
         </Text>
         {isLink ? (
-          <Link href={value.toString()} isExternal wordBreak={'break-all'}>
+          <Link href={value.toString()} isExternal wordBreak="break-all">
             {value.toString()} <ExternalLinkIcon mx="2px" />
           </Link>
         ) : (
-          <Text overflowY={'scroll'} wordBreak={'break-all'}>
+          <Text overflowY="scroll" wordBreak="break-all">
             {value.toString()}
           </Text>
         )}
@@ -129,6 +129,8 @@ const ImageMetadataViewer = memo(
   ({ image, styleClass }: ImageMetadataViewerProps) => {
     const dispatch = useAppDispatch();
 
+    const setBothPrompts = useSetBothPrompts();
+
     useHotkeys('esc', () => {
       dispatch(setShouldShowImageDetails(false));
     });
@@ -152,7 +154,6 @@ const ImageMetadataViewer = memo(
       seed,
       steps,
       strength,
-      denoise_str,
       threshold,
       type,
       variations,
@@ -163,10 +164,10 @@ const ImageMetadataViewer = memo(
 
     return (
       <div className={`image-metadata-viewer ${styleClass}`}>
-        <Flex gap={1} direction={'column'} width={'100%'}>
+        <Flex gap={1} direction="column" width="100%">
           <Flex gap={2}>
-            <Text fontWeight={'semibold'}>File:</Text>
-            <Link href={image.url} isExternal maxW={'calc(100% - 3rem)'}>
+            <Text fontWeight="semibold">File:</Text>
+            <Link href={image.url} isExternal maxW="calc(100% - 3rem)">
               {image.url.length > 64
                 ? image.url.substring(0, 64).concat('...')
                 : image.url}
@@ -189,8 +190,10 @@ const ImageMetadataViewer = memo(
                 <MetadataItem
                   label="Prompt"
                   labelPosition="top"
-                  value={promptToString(prompt)}
-                  onClick={() => dispatch(setPrompt(prompt))}
+                  value={
+                    typeof prompt === 'string' ? prompt : promptToString(prompt)
+                  }
+                  onClick={() => setBothPrompts(prompt)}
                 />
               )}
               {seed !== undefined && (
@@ -304,7 +307,7 @@ const ImageMetadataViewer = memo(
               )}
               {postprocessing && postprocessing.length > 0 && (
                 <>
-                  <Heading size={'sm'}>Postprocessing</Heading>
+                  <Heading size="sm">Postprocessing</Heading>
                   {postprocessing.map(
                     (
                       postprocess: InvokeAI.PostProcessedImageMetadata,
@@ -313,13 +316,8 @@ const ImageMetadataViewer = memo(
                       if (postprocess.type === 'esrgan') {
                         const { scale, strength, denoise_str } = postprocess;
                         return (
-                          <Flex
-                            key={i}
-                            pl={'2rem'}
-                            gap={1}
-                            direction={'column'}
-                          >
-                            <Text size={'md'}>{`${
+                          <Flex key={i} pl="2rem" gap={1} direction="column">
+                            <Text size="md">{`${
                               i + 1
                             }: Upscale (ESRGAN)`}</Text>
                             <MetadataItem
@@ -348,13 +346,8 @@ const ImageMetadataViewer = memo(
                       } else if (postprocess.type === 'gfpgan') {
                         const { strength } = postprocess;
                         return (
-                          <Flex
-                            key={i}
-                            pl={'2rem'}
-                            gap={1}
-                            direction={'column'}
-                          >
-                            <Text size={'md'}>{`${
+                          <Flex key={i} pl="2rem" gap={1} direction="column">
+                            <Text size="md">{`${
                               i + 1
                             }: Face restoration (GFPGAN)`}</Text>
 
@@ -371,13 +364,8 @@ const ImageMetadataViewer = memo(
                       } else if (postprocess.type === 'codeformer') {
                         const { strength, fidelity } = postprocess;
                         return (
-                          <Flex
-                            key={i}
-                            pl={'2rem'}
-                            gap={1}
-                            direction={'column'}
-                          >
-                            <Text size={'md'}>{`${
+                          <Flex key={i} pl="2rem" gap={1} direction="column">
+                            <Text size="md">{`${
                               i + 1
                             }: Face restoration (Codeformer)`}</Text>
 
@@ -413,30 +401,30 @@ const ImageMetadataViewer = memo(
                   value={dreamPrompt}
                 />
               )}
-              <Flex gap={2} direction={'column'}>
+              <Flex gap={2} direction="column">
                 <Flex gap={2}>
-                  <Tooltip label={`Copy metadata JSON`}>
+                  <Tooltip label="Copy metadata JSON">
                     <IconButton
                       aria-label="Copy metadata JSON"
                       icon={<FaCopy />}
-                      size={'xs'}
-                      variant={'ghost'}
+                      size="xs"
+                      variant="ghost"
                       fontSize={14}
                       onClick={() =>
                         navigator.clipboard.writeText(metadataJSON)
                       }
                     />
                   </Tooltip>
-                  <Text fontWeight={'semibold'}>Metadata JSON:</Text>
+                  <Text fontWeight="semibold">Metadata JSON:</Text>
                 </Flex>
-                <div className={'image-json-viewer'}>
+                <div className="image-json-viewer">
                   <pre>{metadataJSON}</pre>
                 </div>
               </Flex>
             </>
           ) : (
-            <Center width={'100%'} pt={10}>
-              <Text fontSize={'lg'} fontWeight="semibold">
+            <Center width="100%" pt={10}>
+              <Text fontSize="lg" fontWeight="semibold">
                 No metadata available
               </Text>
             </Center>

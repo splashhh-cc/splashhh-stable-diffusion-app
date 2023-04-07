@@ -20,6 +20,7 @@ from diffusers import logging as dlogging
 from npyscreen import widget
 from omegaconf import OmegaConf
 
+from ldm.invoke.config.widgets import FloatTitleSlider
 from ldm.invoke.globals import (Globals, global_cache_dir, global_config_file,
                                 global_models_dir, global_set_root)
 from ldm.invoke.model_manager import ModelManager
@@ -79,8 +80,8 @@ def merge_diffusion_models_and_commit(
     merged_model_name = name for new model
     alpha  - The interpolation parameter. Ranges from 0 to 1.  It affects the ratio in which the checkpoints are merged. A 0.8 alpha
                would mean that the first model checkpoints would affect the final result far less than an alpha of 0.2
-    interp - The interpolation method to use for the merging. Supports "sigmoid", "inv_sigmoid", "add_difference" and None.
-               Passing None uses the default interpolation which is weighted sum interpolation. For merging three checkpoints, only "add_difference" is supported.
+    interp - The interpolation method to use for the merging. Supports "weighted_average", "sigmoid", "inv_sigmoid", "add_difference" and None.
+               Passing None uses the default interpolation which is weighted sum interpolation. For merging three checkpoints, only "add_difference" is supported. Add_difference is A+(B-C).
     force  - Whether to ignore mismatch in model_config.json for the current models. Defaults to False.
 
     **kwargs - the default DiffusionPipeline.get_config_dict kwargs:
@@ -172,21 +173,8 @@ def _parse_args() -> Namespace:
 
 
 # ------------------------- GUI HERE -------------------------
-class FloatSlider(npyscreen.Slider):
-    # this is supposed to adjust display precision, but doesn't
-    def translate_value(self):
-        stri = "%3.2f / %3.2f" % (self.value, self.out_of)
-        l = (len(str(self.out_of))) * 2 + 4
-        stri = stri.rjust(l)
-        return stri
-
-
-class FloatTitleSlider(npyscreen.TitleText):
-    _entry_type = FloatSlider
-
-
 class mergeModelsForm(npyscreen.FormMultiPageAction):
-    interpolations = ["weighted_sum", "sigmoid", "inv_sigmoid", "add_difference"]
+    interpolations = ["weighted_sum", "sigmoid", "inv_sigmoid"]
 
     def __init__(self, parentApp, name):
         self.parentApp = parentApp
@@ -305,8 +293,8 @@ class mergeModelsForm(npyscreen.FormMultiPageAction):
         self.alpha = self.add_widget_intelligent(
             FloatTitleSlider,
             name="Weight (alpha) to assign to second and third models:",
-            out_of=1,
-            step=0.05,
+            out_of=1.0,
+            step=0.01,
             lowest=0,
             value=0.5,
             labelColor="CONTROL",
@@ -323,8 +311,8 @@ class mergeModelsForm(npyscreen.FormMultiPageAction):
         self.merged_model_name.value = merged_model_name
 
         if selected_model3 > 0:
-            self.merge_method.values = (["add_difference"],)
-            self.merged_model_name.value += f"+{models[selected_model3]}"
+            self.merge_method.values = ['add_difference ( A+(B-C) )']
+            self.merged_model_name.value += f"+{models[selected_model3 -1]}" # In model3 there is one more element in the list (None). So we have to subtract one.
         else:
             self.merge_method.values = self.interpolations
         self.merge_method.value = 0
@@ -349,11 +337,14 @@ class mergeModelsForm(npyscreen.FormMultiPageAction):
         ]
         if self.model3.value[0] > 0:
             models.append(model_names[self.model3.value[0] - 1])
+            interp='add_difference'
+        else:
+            interp=self.interpolations[self.merge_method.value[0]]
 
         args = dict(
             models=models,
             alpha=self.alpha.value,
-            interp=self.interpolations[self.merge_method.value[0]],
+            interp=interp,
             force=self.force.value,
             merged_model_name=self.merged_model_name.value,
         )
@@ -446,10 +437,10 @@ def main():
     args = _parse_args()
     global_set_root(args.root_dir)
 
-    cache_dir = str(global_cache_dir("diffusers"))
+    cache_dir = str(global_cache_dir("hub"))
     os.environ[
         "HF_HOME"
-    ] = cache_dir  # because not clear the merge pipeline is honoring cache_dir
+    ] = str(global_cache_dir())  # because not clear the merge pipeline is honoring cache_dir
     args.cache_dir = cache_dir
 
     try:
@@ -463,7 +454,7 @@ def main():
                 "** You need to have at least two diffusers models defined in models.yaml in order to merge"
             )
         else:
-            print(f"** A layout error has occurred: {str(e)}")
+            print(f"** Not enough room for the user interface. Try making this window larger.")
         sys.exit(-1)
     except Exception as e:
         print(">> An error occurred:")

@@ -116,7 +116,7 @@ export const mergeAndUploadCanvas =
       downloadFile(url);
       dispatch(
         addToast({
-          title: i18n.t('toast:downloadImageStarted'),
+          title: i18n.t('toast.downloadImageStarted'),
           status: 'success',
           duration: 2500,
           isClosable: true,
@@ -128,7 +128,7 @@ export const mergeAndUploadCanvas =
       copyImage(url, width, height);
       dispatch(
         addToast({
-          title: i18n.t('toast:imageCopied'),
+          title: i18n.t('toast.imageCopied'),
           status: 'success',
           duration: 2500,
           isClosable: true,
@@ -140,7 +140,7 @@ export const mergeAndUploadCanvas =
       dispatch(addImage({ image: newImage, category: 'result' }));
       dispatch(
         addToast({
-          title: i18n.t('toast:imageSavedToGallery'),
+          title: i18n.t('toast.imageSavedToGallery'),
           status: 'success',
           duration: 2500,
           isClosable: true,
@@ -159,7 +159,7 @@ export const mergeAndUploadCanvas =
       );
       dispatch(
         addToast({
-          title: i18n.t('toast:canvasMerged'),
+          title: i18n.t('toast.canvasMerged'),
           status: 'success',
           duration: 2500,
           isClosable: true,
@@ -168,6 +168,6 @@ export const mergeAndUploadCanvas =
     }
 
     dispatch(setIsProcessing(false));
-    dispatch(setCurrentStatus(i18n.t('common:statusConnected')));
+    dispatch(setCurrentStatus(i18n.t('common.statusConnected')));
     dispatch(setIsCancelable(true));
   };

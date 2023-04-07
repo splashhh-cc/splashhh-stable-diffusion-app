@@ -1,4 +1,3 @@
-import math
 from contextlib import contextmanager
 from dataclasses import dataclass
 from math import ceil
@@ -6,18 +5,27 @@ from typing import Callable, Optional, Union, Any, Dict
 
 import numpy as np
 import torch
-
 from diffusers.models.cross_attention import AttnProcessor
+from typing_extensions import TypeAlias
+
+from ldm.invoke.globals import Globals
 from ldm.models.diffusion.cross_attention_control import Arguments, \
     restore_default_cross_attention, override_cross_attention, Context, get_cross_attention_modules, \
     CrossAttentionType, SwapCrossAttnContext
 from ldm.models.diffusion.cross_attention_map_saving import AttentionMapSaver
 
+ModelForwardCallback: TypeAlias = Union[
+    # x, t, conditioning, Optional[cross-attention kwargs]
+    Callable[[torch.Tensor, torch.Tensor, torch.Tensor, Optional[dict[str, Any]]], torch.Tensor],
+    Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]
+]
 
 @dataclass(frozen=True)
-class ThresholdSettings:
+class PostprocessingSettings:
     threshold: float
     warmup: float
+    h_symmetry_time_pct: Optional[float]
+    v_symmetry_time_pct: Optional[float]
 
 
 class InvokeAIDiffuserComponent:
@@ -30,7 +38,7 @@ class InvokeAIDiffuserComponent:
     * Hybrid conditioning (used for inpainting)
     '''
     debug_thresholding = False
-
+    sequential_guidance = False
 
     @dataclass
     class ExtraConditioningInfo:
@@ -43,8 +51,7 @@ class InvokeAIDiffuserComponent:
             return self.cross_attention_control_args is not None
 
 
-    def __init__(self, model, model_forward_callback:
-                    Callable[[torch.Tensor, torch.Tensor, torch.Tensor, Optional[dict[str,Any]]], torch.Tensor],
+    def __init__(self, model, model_forward_callback: ModelForwardCallback,
                  is_running_diffusers: bool=False,
                  ):
         """
@@ -56,6 +63,7 @@ class InvokeAIDiffuserComponent:
         self.is_running_diffusers = is_running_diffusers
         self.model_forward_callback = model_forward_callback
         self.cross_attention_control_context = None
+        self.sequential_guidance = Globals.sequential_guidance
 
     @contextmanager
     def custom_attention_context(self,
@@ -121,7 +129,6 @@ class InvokeAIDiffuserComponent:
                                 unconditional_guidance_scale: float,
                                 step_index: Optional[int]=None,
                                 total_step_count: Optional[int]=None,
-                                threshold: Optional[ThresholdSettings]=None,
                           ):
         """
         :param x: current latents
@@ -130,7 +137,6 @@ class InvokeAIDiffuserComponent:
         :param conditioning: embeddings for conditioned output. for hybrid conditioning this is a dict of tensors [B x 77 x 768], otherwise a single tensor [B x 77 x 768]
         :param unconditional_guidance_scale: aka CFG scale, controls how much effect the conditioning tensor has
         :param step_index: counts upwards from 0 to (step_count-1) (as passed to setup_cross_attention_control, if using). May be called multiple times for a single step, therefore do not assume that its value will monotically increase. If None, will be estimated by comparing sigma against self.model.sigmas .
-        :param threshold: threshold to apply after each step
         :return: the new latents after applying the model to x using unscaled unconditioning and CFG-scaled conditioning.
         """
 
@@ -138,37 +144,62 @@ class InvokeAIDiffuserComponent:
         cross_attention_control_types_to_do = []
         context: Context = self.cross_attention_control_context
         if self.cross_attention_control_context is not None:
-            if step_index is not None and total_step_count is not None:
-                # 🧨diffusers codepath
-                percent_through = step_index / total_step_count  # will never reach 1.0 - this is deliberate
-            else:
-                # legacy compvis codepath
-                # TODO remove when compvis codepath support is dropped
-                if step_index is None and sigma is None:
-                    raise ValueError(f"Either step_index or sigma is required when doing cross attention control, but both are None.")
-                percent_through = self.estimate_percent_through(step_index, sigma)
+            percent_through = self.calculate_percent_through(sigma, step_index, total_step_count)
             cross_attention_control_types_to_do = context.get_active_cross_attention_control_types_for_step(percent_through)
 
         wants_cross_attention_control = (len(cross_attention_control_types_to_do) > 0)
         wants_hybrid_conditioning = isinstance(conditioning, dict)
 
         if wants_hybrid_conditioning:
-            unconditioned_next_x, conditioned_next_x = self.apply_hybrid_conditioning(x, sigma, unconditioning, conditioning)
+            unconditioned_next_x, conditioned_next_x = self._apply_hybrid_conditioning(x, sigma, unconditioning,
+                                                                                       conditioning)
         elif wants_cross_attention_control:
-            unconditioned_next_x, conditioned_next_x = self.apply_cross_attention_controlled_conditioning(x, sigma, unconditioning, conditioning, cross_attention_control_types_to_do)
+            unconditioned_next_x, conditioned_next_x = self._apply_cross_attention_controlled_conditioning(x, sigma,
+                                                                                                           unconditioning,
+                                                                                                           conditioning,
+                                                                                                           cross_attention_control_types_to_do)
+        elif self.sequential_guidance:
+            unconditioned_next_x, conditioned_next_x = self._apply_standard_conditioning_sequentially(
+                x, sigma, unconditioning, conditioning)
+
         else:
-            unconditioned_next_x, conditioned_next_x = self.apply_standard_conditioning(x, sigma, unconditioning, conditioning)
+            unconditioned_next_x, conditioned_next_x = self._apply_standard_conditioning(
+                x, sigma, unconditioning, conditioning)
 
         combined_next_x = self._combine(unconditioned_next_x, conditioned_next_x, unconditional_guidance_scale)
 
-        if threshold:
-            combined_next_x = self._threshold(threshold.threshold, threshold.warmup, combined_next_x, sigma)
-
         return combined_next_x
+
+    def do_latent_postprocessing(
+        self,
+        postprocessing_settings: PostprocessingSettings,
+        latents: torch.Tensor,
+        sigma,
+        step_index,
+        total_step_count
+    ) -> torch.Tensor:
+        if postprocessing_settings is not None:
+            percent_through = self.calculate_percent_through(sigma, step_index, total_step_count)
+            latents = self.apply_threshold(postprocessing_settings, latents, percent_through)
+            latents = self.apply_symmetry(postprocessing_settings, latents, percent_through)
+        return latents
+
+    def calculate_percent_through(self, sigma, step_index, total_step_count):
+        if step_index is not None and total_step_count is not None:
+            # 🧨diffusers codepath
+            percent_through = step_index / total_step_count  # will never reach 1.0 - this is deliberate
+        else:
+            # legacy compvis codepath
+            # TODO remove when compvis codepath support is dropped
+            if step_index is None and sigma is None:
+                raise ValueError(
+                    f"Either step_index or sigma is required when doing cross attention control, but both are None.")
+            percent_through = self.estimate_percent_through(step_index, sigma)
+        return percent_through
 
     # methods below are called from do_diffusion_step and should be considered private to this class.
 
-    def apply_standard_conditioning(self, x, sigma, unconditioning, conditioning):
+    def _apply_standard_conditioning(self, x, sigma, unconditioning, conditioning):
         # fast batched path
         x_twice = torch.cat([x] * 2)
         sigma_twice = torch.cat([sigma] * 2)
@@ -181,7 +212,17 @@ class InvokeAIDiffuserComponent:
         return unconditioned_next_x, conditioned_next_x
 
 
-    def apply_hybrid_conditioning(self, x, sigma, unconditioning, conditioning):
+    def _apply_standard_conditioning_sequentially(self, x: torch.Tensor, sigma, unconditioning: torch.Tensor, conditioning: torch.Tensor):
+        # low-memory sequential path
+        unconditioned_next_x = self.model_forward_callback(x, sigma, unconditioning)
+        conditioned_next_x = self.model_forward_callback(x, sigma, conditioning)
+        if conditioned_next_x.device.type == 'mps':
+            # prevent a result filled with zeros. seems to be a torch bug.
+            conditioned_next_x = conditioned_next_x.clone()
+        return unconditioned_next_x, conditioned_next_x
+
+
+    def _apply_hybrid_conditioning(self, x, sigma, unconditioning, conditioning):
         assert isinstance(conditioning, dict)
         assert isinstance(unconditioning, dict)
         x_twice = torch.cat([x] * 2)
@@ -199,18 +240,21 @@ class InvokeAIDiffuserComponent:
         return unconditioned_next_x, conditioned_next_x
 
 
-    def apply_cross_attention_controlled_conditioning(self,
+    def _apply_cross_attention_controlled_conditioning(self,
                                                      x: torch.Tensor,
                                                      sigma,
                                                      unconditioning,
                                                      conditioning,
                                                      cross_attention_control_types_to_do):
         if self.is_running_diffusers:
-            return self.apply_cross_attention_controlled_conditioning__diffusers(x, sigma, unconditioning, conditioning, cross_attention_control_types_to_do)
+            return self._apply_cross_attention_controlled_conditioning__diffusers(x, sigma, unconditioning,
+                                                                                  conditioning,
+                                                                                  cross_attention_control_types_to_do)
         else:
-            return self.apply_cross_attention_controlled_conditioning__compvis(x, sigma, unconditioning, conditioning, cross_attention_control_types_to_do)
+            return self._apply_cross_attention_controlled_conditioning__compvis(x, sigma, unconditioning, conditioning,
+                                                                                cross_attention_control_types_to_do)
 
-    def apply_cross_attention_controlled_conditioning__diffusers(self,
+    def _apply_cross_attention_controlled_conditioning__diffusers(self,
                                                                  x: torch.Tensor,
                                                                  sigma,
                                                                  unconditioning,
@@ -233,7 +277,7 @@ class InvokeAIDiffuserComponent:
         return unconditioned_next_x, conditioned_next_x
 
 
-    def apply_cross_attention_controlled_conditioning__compvis(self, x:torch.Tensor, sigma, unconditioning, conditioning, cross_attention_control_types_to_do):
+    def _apply_cross_attention_controlled_conditioning__compvis(self, x:torch.Tensor, sigma, unconditioning, conditioning, cross_attention_control_types_to_do):
         # print('pct', percent_through, ': doing cross attention control on', cross_attention_control_types_to_do)
         # slower non-batched path (20% slower on mac MPS)
         # We are only interested in using attention maps for conditioned_next_x, but batching them with generation of
@@ -275,17 +319,27 @@ class InvokeAIDiffuserComponent:
         combined_next_x = unconditioned_next_x + scaled_delta
         return combined_next_x
 
-    def _threshold(self, threshold, warmup, latents: torch.Tensor, sigma) -> torch.Tensor:
-        warmup_scale = (1 - sigma.item() / 1000) / warmup if warmup else math.inf
-        if warmup_scale < 1:
-            # This arithmetic based on https://github.com/invoke-ai/InvokeAI/pull/395
-            warming_threshold = 1 + (threshold - 1) * warmup_scale
-            current_threshold = np.clip(warming_threshold, 1, threshold)
+    def apply_threshold(
+        self,
+        postprocessing_settings: PostprocessingSettings,
+        latents: torch.Tensor,
+        percent_through: float
+    ) -> torch.Tensor:
+
+        if postprocessing_settings.threshold is None or postprocessing_settings.threshold == 0.0:
+            return latents
+
+        threshold = postprocessing_settings.threshold
+        warmup = postprocessing_settings.warmup
+
+        if percent_through < warmup:
+            current_threshold = threshold + threshold * 5 * (1 - (percent_through / warmup))
         else:
             current_threshold = threshold
 
         if current_threshold <= 0:
             return latents
+
         maxval = latents.max().item()
         minval = latents.min().item()
 
@@ -294,25 +348,84 @@ class InvokeAIDiffuserComponent:
         if self.debug_thresholding:
             std, mean = [i.item() for i in torch.std_mean(latents)]
             outside = torch.count_nonzero((latents < -current_threshold) | (latents > current_threshold))
-            print(f"\nThreshold: 𝜎={sigma.item()} threshold={current_threshold:.3f} (of {threshold:.3f})\n"
+            print(f"\nThreshold: %={percent_through} threshold={current_threshold:.3f} (of {threshold:.3f})\n"
                   f"  | min, mean, max = {minval:.3f}, {mean:.3f}, {maxval:.3f}\tstd={std}\n"
                   f"  | {outside / latents.numel() * 100:.2f}% values outside threshold")
 
         if maxval < current_threshold and minval > -current_threshold:
             return latents
 
+        num_altered = 0
+
+        # MPS torch.rand_like is fine because torch.rand_like is wrapped in generate.py!
+
         if maxval > current_threshold:
+            latents = torch.clone(latents)
             maxval = np.clip(maxval * scale, 1, current_threshold)
+            num_altered += torch.count_nonzero(latents > maxval)
+            latents[latents > maxval] = torch.rand_like(latents[latents > maxval]) * maxval
 
         if minval < -current_threshold:
+            latents = torch.clone(latents)
             minval = np.clip(minval * scale, -current_threshold, -1)
+            num_altered += torch.count_nonzero(latents < minval)
+            latents[latents < minval] = torch.rand_like(latents[latents < minval]) * minval
 
         if self.debug_thresholding:
-            outside = torch.count_nonzero((latents < minval) | (latents > maxval))
             print(f"  | min,     , max = {minval:.3f},        , {maxval:.3f}\t(scaled by {scale})\n"
-                  f"  | {outside / latents.numel() * 100:.2f}% values will be clamped")
+                  f"  | {num_altered / latents.numel() * 100:.2f}% values altered")
 
-        return latents.clamp(minval, maxval)
+        return latents
+
+    def apply_symmetry(
+        self,
+        postprocessing_settings: PostprocessingSettings,
+        latents: torch.Tensor,
+        percent_through: float
+    ) -> torch.Tensor:
+
+        # Reset our last percent through if this is our first step.
+        if percent_through == 0.0:
+            self.last_percent_through = 0.0
+
+        if postprocessing_settings is None:
+            return latents
+
+        # Check for out of bounds
+        h_symmetry_time_pct = postprocessing_settings.h_symmetry_time_pct
+        if (h_symmetry_time_pct is not None and (h_symmetry_time_pct <= 0.0 or h_symmetry_time_pct > 1.0)):
+            h_symmetry_time_pct = None
+
+        v_symmetry_time_pct = postprocessing_settings.v_symmetry_time_pct
+        if (v_symmetry_time_pct is not None and (v_symmetry_time_pct <= 0.0 or v_symmetry_time_pct > 1.0)):
+            v_symmetry_time_pct = None
+
+        dev = latents.device.type
+
+        latents.to(device='cpu')
+
+        if (
+            h_symmetry_time_pct != None and
+            self.last_percent_through < h_symmetry_time_pct and
+            percent_through >= h_symmetry_time_pct
+        ):
+            # Horizontal symmetry occurs on the 3rd dimension of the latent
+            width = latents.shape[3]
+            x_flipped = torch.flip(latents, dims=[3])
+            latents = torch.cat([latents[:, :, :, 0:int(width/2)], x_flipped[:, :, :, int(width/2):int(width)]], dim=3)
+
+        if (
+            v_symmetry_time_pct != None and
+            self.last_percent_through < v_symmetry_time_pct and
+            percent_through >= v_symmetry_time_pct
+        ):
+            # Vertical symmetry occurs on the 2nd dimension of the latent
+            height = latents.shape[2]
+            y_flipped = torch.flip(latents, dims=[2])
+            latents = torch.cat([latents[:, :, 0:int(height / 2)], y_flipped[:, :, int(height / 2):int(height)]], dim=2)
+
+        self.last_percent_through = percent_through
+        return latents.to(device=dev)
 
     def estimate_percent_through(self, step_index, sigma):
         if step_index is not None and self.cross_attention_control_context is not None:
@@ -376,4 +489,3 @@ class InvokeAIDiffuserComponent:
         # assert(0 == len(torch.nonzero(old_return_value - (uncond_latents + deltas_merged * cond_scale))))
 
         return uncond_latents + deltas_merged * global_guidance_scale
-

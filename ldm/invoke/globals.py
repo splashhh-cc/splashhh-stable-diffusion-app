@@ -13,27 +13,33 @@ the attributes:
 
 import os
 import os.path as osp
-from pathlib import Path
 from argparse import Namespace
+from pathlib import Path
 from typing import Union
 
 Globals = Namespace()
 
-# This is usually overwritten by the command line and/or environment variables
-if os.environ.get('INVOKEAI_ROOT'):
-    Globals.root = osp.abspath(os.environ.get('INVOKEAI_ROOT'))
-elif os.environ.get('VIRTUAL_ENV'):
-    Globals.root = osp.abspath(osp.join(os.environ.get('VIRTUAL_ENV'), '..'))
-else:
-    Globals.root = osp.abspath(osp.expanduser('~/invokeai'))
-
-# Where to look for the initialization file
+# Where to look for the initialization file and other key components
 Globals.initfile = 'invokeai.init'
 Globals.models_file = 'models.yaml'
 Globals.models_dir = 'models'
 Globals.config_dir = 'configs'
 Globals.autoscan_dir = 'weights'
-Globals.converted_ckpts_dir = 'converted-ckpts'
+Globals.converted_ckpts_dir = 'converted_ckpts'
+
+# Set the default root directory. This can be overwritten by explicitly
+# passing the `--root <directory>` argument on the command line.
+# logic is:
+# 1) use INVOKEAI_ROOT environment variable (no check for this being a valid directory)
+# 2) use VIRTUAL_ENV environment variable, with a check for initfile being there
+# 3) use ~/invokeai
+
+if os.environ.get('INVOKEAI_ROOT'):
+    Globals.root = osp.abspath(os.environ.get('INVOKEAI_ROOT'))
+elif os.environ.get('VIRTUAL_ENV') and Path(os.environ.get('VIRTUAL_ENV'),'..',Globals.initfile).exists():
+    Globals.root = osp.abspath(osp.join(os.environ.get('VIRTUAL_ENV'), '..'))
+else:
+    Globals.root = osp.abspath(osp.expanduser('~/invokeai'))
 
 # Try loading patchmatch
 Globals.try_patchmatch = True
@@ -48,11 +54,17 @@ Globals.internet_available = True
 # Whether to disable xformers
 Globals.disable_xformers = False
 
+# Low-memory tradeoff for guidance calculations.
+Globals.sequential_guidance = False
+
 # whether we are forcing full precision
 Globals.full_precision = False
 
 # whether we should convert ckpt files into diffusers models on the fly
 Globals.ckpt_convert = False
+
+# logging tokenization everywhere
+Globals.log_tokenization = False
 
 def global_config_file()->Path:
     return Path(Globals.root, Globals.config_dir, Globals.models_file)
@@ -66,6 +78,9 @@ def global_models_dir()->Path:
 def global_autoscan_dir()->Path:
     return Path(Globals.root, Globals.autoscan_dir)
 
+def global_converted_ckpts_dir()->Path:
+    return Path(global_models_dir(), Globals.converted_ckpts_dir)
+
 def global_set_root(root_dir:Union[str,Path]):
     Globals.root = root_dir
 
@@ -73,16 +88,13 @@ def global_cache_dir(subdir:Union[str,Path]='')->Path:
     '''
     Returns Path to the model cache directory. If a subdirectory
     is provided, it will be appended to the end of the path, allowing
-    for huggingface-style conventions:
-         global_cache_dir('diffusers')
+    for Hugging Face-style conventions. Currently, Hugging Face has
+    moved all models into the "hub" subfolder, so for any pretrained
+    HF model, use:
          global_cache_dir('hub')
-    Current HuggingFace documentation (mid-Jan 2023) indicates that
-    transformers models will be cached into a "transformers" subdirectory,
-    but in practice they seem to go into "hub". But if needed:
-         global_cache_dir('transformers')
-    One other caveat is that HuggingFace is moving some diffusers models
-    into the "hub" subdirectory as well, so this will need to be revisited
-    from time to time.
+
+    The legacy location for transformers used to be global_cache_dir('transformers')
+    and global_cache_dir('diffusers') for diffusers.
     '''
     home: str = os.getenv('HF_HOME')
 

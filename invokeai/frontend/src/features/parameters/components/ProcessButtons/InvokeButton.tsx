@@ -5,6 +5,7 @@ import IAIButton, { IAIButtonProps } from 'common/components/IAIButton';
 import IAIIconButton, {
   IAIIconButtonProps,
 } from 'common/components/IAIIconButton';
+import { clampSymmetrySteps } from 'features/parameters/store/generationSlice';
 import { activeTabNameSelector } from 'features/ui/store/uiSelectors';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +34,7 @@ export default function InvokeButton(props: InvokeButton) {
   useHotkeys(
     ['ctrl+enter', 'meta+enter'],
     () => {
+      dispatch(clampSymmetrySteps());
       dispatch(generateImage(activeTabName));
     },
     {
@@ -47,19 +49,19 @@ export default function InvokeButton(props: InvokeButton) {
     <div style={{ flexGrow: 4 }}>
       {iconButton ? (
         <IAIIconButton
-          aria-label={t('parameters:invoke')}
+          aria-label={t('parameters.invoke')}
           type="submit"
           icon={<FaPlay />}
           isDisabled={!isReady}
           onClick={handleClickGenerate}
           className="invoke-btn"
-          tooltip={t('parameters:invoke')}
+          tooltip={t('parameters.invoke')}
           tooltipProps={{ placement: 'bottom' }}
           {...rest}
         />
       ) : (
         <IAIButton
-          aria-label={t('parameters:invoke')}
+          aria-label={t('parameters.invoke')}
           type="submit"
           isDisabled={!isReady}
           onClick={handleClickGenerate}

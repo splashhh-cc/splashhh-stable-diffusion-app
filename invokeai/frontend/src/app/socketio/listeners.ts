@@ -61,7 +61,7 @@ const makeSocketIOListeners = (
     onConnect: () => {
       try {
         dispatch(setIsConnected(true));
-        dispatch(setCurrentStatus(i18n.t('common:statusConnected')));
+        dispatch(setCurrentStatus(i18n.t('common.statusConnected')));
         dispatch(requestSystemConfig());
         const gallery: GalleryState = getState().gallery;
 
@@ -86,7 +86,7 @@ const makeSocketIOListeners = (
     onDisconnect: () => {
       try {
         dispatch(setIsConnected(false));
-        dispatch(setCurrentStatus(i18n.t('common:statusDisconnected')));
+        dispatch(setCurrentStatus(i18n.t('common.statusDisconnected')));
 
         dispatch(
           addLogEntry({
@@ -390,6 +390,7 @@ const makeSocketIOListeners = (
       const { new_model_name, model_list, update } = data;
       dispatch(setModelList(model_list));
       dispatch(setIsProcessing(false));
+      dispatch(setCurrentStatus(i18n.t('modelManager.modelAdded')));
       dispatch(
         addLogEntry({
           timestamp: dateFormat(new Date(), 'isoDateTime'),
@@ -400,8 +401,8 @@ const makeSocketIOListeners = (
       dispatch(
         addToast({
           title: !update
-            ? `${i18n.t('modelmanager:modelAdded')}: ${new_model_name}`
-            : `${i18n.t('modelmanager:modelUpdated')}: ${new_model_name}`,
+            ? `${i18n.t('modelManager.modelAdded')}: ${new_model_name}`
+            : `${i18n.t('modelManager.modelUpdated')}: ${new_model_name}`,
           status: 'success',
           duration: 2500,
           isClosable: true,
@@ -416,7 +417,7 @@ const makeSocketIOListeners = (
         addLogEntry({
           timestamp: dateFormat(new Date(), 'isoDateTime'),
           message: `${i18n.t(
-            'modelmanager:modelAdded'
+            'modelManager.modelAdded'
           )}: ${deleted_model_name}`,
           level: 'info',
         })
@@ -424,8 +425,54 @@ const makeSocketIOListeners = (
       dispatch(
         addToast({
           title: `${i18n.t(
-            'modelmanager:modelEntryDeleted'
+            'modelManager.modelEntryDeleted'
           )}: ${deleted_model_name}`,
+          status: 'success',
+          duration: 2500,
+          isClosable: true,
+        })
+      );
+    },
+    onModelConverted: (data: InvokeAI.ModelConvertedResponse) => {
+      const { converted_model_name, model_list } = data;
+      dispatch(setModelList(model_list));
+      dispatch(setCurrentStatus(i18n.t('common.statusModelConverted')));
+      dispatch(setIsProcessing(false));
+      dispatch(setIsCancelable(true));
+      dispatch(
+        addLogEntry({
+          timestamp: dateFormat(new Date(), 'isoDateTime'),
+          message: `Model converted: ${converted_model_name}`,
+          level: 'info',
+        })
+      );
+      dispatch(
+        addToast({
+          title: `${i18n.t(
+            'modelManager.modelConverted'
+          )}: ${converted_model_name}`,
+          status: 'success',
+          duration: 2500,
+          isClosable: true,
+        })
+      );
+    },
+    onModelsMerged: (data: InvokeAI.ModelsMergedResponse) => {
+      const { merged_models, merged_model_name, model_list } = data;
+      dispatch(setModelList(model_list));
+      dispatch(setCurrentStatus(i18n.t('common.statusMergedModels')));
+      dispatch(setIsProcessing(false));
+      dispatch(setIsCancelable(true));
+      dispatch(
+        addLogEntry({
+          timestamp: dateFormat(new Date(), 'isoDateTime'),
+          message: `Models merged: ${merged_models}`,
+          level: 'info',
+        })
+      );
+      dispatch(
+        addToast({
+          title: `${i18n.t('modelManager.modelsMerged')}: ${merged_model_name}`,
           status: 'success',
           duration: 2500,
           isClosable: true,
@@ -435,7 +482,7 @@ const makeSocketIOListeners = (
     onModelChanged: (data: InvokeAI.ModelChangeResponse) => {
       const { model_name, model_list } = data;
       dispatch(setModelList(model_list));
-      dispatch(setCurrentStatus(i18n.t('common:statusModelChanged')));
+      dispatch(setCurrentStatus(i18n.t('common.statusModelChanged')));
       dispatch(setIsProcessing(false));
       dispatch(setIsCancelable(true));
       dispatch(
@@ -463,7 +510,7 @@ const makeSocketIOListeners = (
     onTempFolderEmptied: () => {
       dispatch(
         addToast({
-          title: i18n.t('toast:tempFoldersEmptied'),
+          title: i18n.t('toast.tempFoldersEmptied'),
           status: 'success',
           duration: 2500,
           isClosable: true,

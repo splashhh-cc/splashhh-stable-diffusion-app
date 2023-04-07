@@ -67,7 +67,7 @@ else:
         "nearest": PIL.Image.NEAREST,
     }
 # ------------------------------------------------------------------------------
-
+XFORMERS_AVAILABLE = is_xformers_available
 
 # Will error if the minimal version of diffusers is not installed. Remove at your own risks.
 check_min_version("0.10.0.dev0")
@@ -227,7 +227,7 @@ def parse_args():
     training_group.add_argument(
         "--train_batch_size",
         type=int,
-        default=16,
+        default=8 if XFORMERS_AVAILABLE else 3,
         help="Batch size (per device) for the training dataloader.",
     )
     training_group.add_argument("--num_train_epochs", type=int, default=100)
@@ -324,6 +324,7 @@ def parse_args():
     parser.add_argument(
         "--enable_xformers_memory_efficient_attention",
         action="store_true",
+        default=XFORMERS_AVAILABLE,
         help="Whether or not to use xformers.",
     )
 
@@ -430,7 +431,7 @@ class TextualInversionDataset(Dataset):
         placeholder_token="*",
         center_crop=False,
     ):
-        self.data_root = data_root
+        self.data_root = Path(data_root)
         self.tokenizer = tokenizer
         self.learnable_property = learnable_property
         self.size = size
@@ -439,8 +440,9 @@ class TextualInversionDataset(Dataset):
         self.flip_p = flip_p
 
         self.image_paths = [
-            os.path.join(self.data_root, file_path)
-            for file_path in os.listdir(self.data_root)
+            self.data_root / file_path
+            for file_path in self.data_root.iterdir()
+            if file_path.is_file() and file_path.name.endswith(('.png','.PNG','.jpg','.JPG','.jpeg','.JPEG','.gif','.GIF'))
         ]
 
         self.num_images = len(self.image_paths)
@@ -535,7 +537,7 @@ def do_textual_inversion_training(
     seed: int = None,
     resolution: int = 512,
     center_crop: bool = False,
-    train_batch_size: int = 16,
+    train_batch_size: int = 4,
     num_train_epochs: int = 100,
     max_train_steps: int = 5000,
     gradient_accumulation_steps: int = 1,
@@ -633,7 +635,7 @@ def do_textual_inversion_training(
     assert (
         pretrained_model_name_or_path
     ), f"models.yaml error: neither 'repo_id' nor 'path' is defined for {model}"
-    pipeline_args = dict(cache_dir=global_cache_dir("diffusers"))
+    pipeline_args = dict(cache_dir=global_cache_dir("hub"))
 
     # Load tokenizer
     if tokenizer_name:

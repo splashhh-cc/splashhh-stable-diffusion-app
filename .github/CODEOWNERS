@@ -1,18 +1,18 @@
 # continuous integration
-/.github/workflows/ @mauwii
+/.github/workflows/ @mauwii @lstein @blessedcoolant
 
 # documentation
-/docs/ @lstein @mauwii @tildebyte
-mkdocs.yml @lstein @mauwii
+/docs/ @lstein @mauwii @blessedcoolant
+mkdocs.yml @mauwii @lstein
 
 # installation and configuration
 /pyproject.toml @mauwii @lstein @ebr
 /docker/ @mauwii
-/scripts/ @ebr @lstein
-/installer/ @ebr @lstein @tildebyte
+/scripts/ @ebr @lstein @blessedcoolant
+/installer/ @ebr @lstein 
 ldm/invoke/config @lstein @ebr
-invokeai/assets @lstein @ebr
-invokeai/configs @lstein @ebr
+invokeai/assets @lstein @blessedcoolant
+invokeai/configs @lstein @ebr  @blessedcoolant
 /ldm/invoke/_version.py @lstein @blessedcoolant
 
 # web ui
@@ -20,31 +20,42 @@ invokeai/configs @lstein @ebr
 /invokeai/backend @blessedcoolant @psychedelicious
 
 # generation and model management
-/ldm/*.py @lstein
+/ldm/*.py @lstein @blessedcoolant
 /ldm/generate.py @lstein @keturn
 /ldm/invoke/args.py @lstein @blessedcoolant
-/ldm/invoke/ckpt* @lstein
-/ldm/invoke/ckpt_generator @lstein
-/ldm/invoke/CLI.py @lstein
-/ldm/invoke/config @lstein @ebr @mauwii
+/ldm/invoke/ckpt* @lstein @blessedcoolant
+/ldm/invoke/ckpt_generator @lstein @blessedcoolant
+/ldm/invoke/CLI.py @lstein @blessedcoolant
+/ldm/invoke/config @lstein @ebr @mauwii @blessedcoolant
 /ldm/invoke/generator @keturn @damian0815
-/ldm/invoke/globals.py @lstein @blessedcoolant
-/ldm/invoke/merge_diffusers.py @lstein
+/ldm/invoke/globals.py @lstein @blessedcoolant 
+/ldm/invoke/merge_diffusers.py @lstein @blessedcoolant
 /ldm/invoke/model_manager.py @lstein @blessedcoolant
-/ldm/invoke/txt2mask.py @lstein
-/ldm/invoke/patchmatch.py @Kyle0654
+/ldm/invoke/txt2mask.py @lstein @blessedcoolant
+/ldm/invoke/patchmatch.py @Kyle0654 @lstein
 /ldm/invoke/restoration @lstein @blessedcoolant
 
 # attention, textual inversion, model configuration
-/ldm/models @damian0815 @keturn
-/ldm/modules @damian0815 @keturn
+/ldm/models @damian0815 @keturn @blessedcoolant
+/ldm/modules/textual_inversion_manager.py @lstein @blessedcoolant
+/ldm/modules/attention.py @damian0815 @keturn
+/ldm/modules/diffusionmodules @damian0815 @keturn
+/ldm/modules/distributions @damian0815 @keturn
+/ldm/modules/ema.py  @damian0815 @keturn
+/ldm/modules/embedding_manager.py @lstein
+/ldm/modules/encoders @damian0815 @keturn
+/ldm/modules/image_degradation @damian0815 @keturn
+/ldm/modules/losses  @damian0815 @keturn
+/ldm/modules/x_transformer.py @damian0815 @keturn
 
 # Nodes
-apps/ @Kyle0654
+apps/ @Kyle0654 @jpphoto
 
 # legacy REST API
-# is CapableWeb still engaged?
-/ldm/invoke/pngwriter.py @CapableWeb
-/ldm/invoke/server_legacy.py @CapableWeb
-/scripts/legacy_api.py @CapableWeb
-/tests/legacy_tests.sh @CapableWeb
+# these are dead code
+#/ldm/invoke/pngwriter.py @CapableWeb
+#/ldm/invoke/server_legacy.py @CapableWeb
+#/scripts/legacy_api.py @CapableWeb
+#/tests/legacy_tests.sh @CapableWeb
+
+

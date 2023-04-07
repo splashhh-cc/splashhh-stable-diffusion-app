@@ -91,13 +91,15 @@ import pydoc
 import re
 import shlex
 import sys
-import ldm.invoke
-import ldm.invoke.pngwriter
-
-from ldm.invoke.globals import Globals
-from ldm.invoke.prompt_parser import split_weighted_subprompts
 from argparse import Namespace
 from pathlib import Path
+from typing import List
+
+import ldm.invoke
+import ldm.invoke.pngwriter
+from ldm.invoke.conditioning import split_weighted_subprompts
+
+from ldm.invoke.globals import Globals
 
 APP_ID = ldm.invoke.__app_id__
 APP_NAME = ldm.invoke.__app_name__
@@ -172,10 +174,10 @@ class Args(object):
         self._arg_switches = self.parse_cmd('')   # fill in defaults
         self._cmd_switches = self.parse_cmd('')   # fill in defaults
 
-    def parse_args(self):
+    def parse_args(self, args: List[str]=None):
         '''Parse the shell switches and store.'''
+        sysargs = args if args is not None else sys.argv[1:]
         try:
-            sysargs = sys.argv[1:]
             # pre-parse before we do any initialization to get root directory
             # and intercept --version request
             switches = self._arg_parser.parse_args(sysargs)
@@ -272,6 +274,10 @@ class Args(object):
             switches.append('--seamless')
         if a['hires_fix']:
             switches.append('--hires_fix')
+        if a['h_symmetry_time_pct']:
+            switches.append(f'--h_symmetry_time_pct {a["h_symmetry_time_pct"]}')
+        if a['v_symmetry_time_pct']:
+            switches.append(f'--v_symmetry_time_pct {a["v_symmetry_time_pct"]}')
 
         # img2img generations have parameters relevant only to them and have special handling
         if a['init_img'] and len(a['init_img'])>0:
@@ -327,7 +333,7 @@ class Args(object):
             switches.append(f'-V {formatted_variations}')
         if 'variations' in a and len(a['variations'])>0:
             switches.append(f'-V {a["variations"]}')
-        return ' '.join(switches)
+        return ' '.join(switches) + f' # model_id={kwargs.get("model_id","unknown model")}'
 
     def __getattribute__(self,name):
         '''
@@ -485,6 +491,13 @@ class Args(object):
             help='Force free gpu memory before final decoding',
         )
         model_group.add_argument(
+            '--sequential_guidance',
+            dest='sequential_guidance',
+            action='store_true',
+            help="Calculate guidance in serial instead of in parallel, lowering memory requirement "
+                 "at the expense of speed",
+        )
+        model_group.add_argument(
             '--xformers',
             action=argparse.BooleanOptionalAction,
             default=True,
@@ -528,10 +541,16 @@ class Args(object):
             help='Check for and blur potentially NSFW images. Use --no-nsfw_checker to disable.',
         )
         model_group.add_argument(
+            '--autoimport',
+            default=None,
+            type=str,
+            help='Check the indicated directory for .ckpt/.safetensors weights files at startup and import directly',
+        )
+        model_group.add_argument(
             '--autoconvert',
             default=None,
             type=str,
-            help='Check the indicated directory for .ckpt weights files at startup and import as optimized diffuser models',
+            help='Check the indicated directory for .ckpt/.safetensors weights files at startup and import as optimized diffuser models',
         )
         model_group.add_argument(
             '--patchmatch',
@@ -549,8 +568,8 @@ class Args(object):
             '--outdir',
             '-o',
             type=str,
-            help='Directory to save generated images and a log of prompts and seeds. Default: outputs/img-samples',
-            default='outputs/img-samples',
+            help='Directory to save generated images and a log of prompts and seeds. Default: ROOTDIR/outputs',
+            default='outputs',
         )
         file_group.add_argument(
             '--prompt_as_dir',
@@ -751,6 +770,9 @@ class Args(object):
                 !fix applies upscaling/facefixing to a previously-generated image.
                 invoke> !fix 0000045.4829112.png -G1 -U4 -ft codeformer
 
+            *embeddings*
+                invoke> !triggers     -- return all trigger phrases contained in loaded embedding files
+
             *History manipulation*
             !fetch retrieves the command used to generate an earlier image. Provide
             a directory wildcard and the name of a file to write and all the commands
@@ -843,8 +865,20 @@ class Args(object):
             help='Perlin noise scale (0.0 - 1.0) - add perlin noise to the initialization instead of the usual gaussian noise.',
         )
         render_group.add_argument(
+            '--h_symmetry_time_pct',
+            default=None,
+            type=float,
+            help='Horizontal symmetry point (0.0 - 1.0) - apply horizontal symmetry at this point in image generation.',
+        )
+        render_group.add_argument(
+            '--v_symmetry_time_pct',
+            default=None,
+            type=float,
+            help='Vertical symmetry point (0.0 - 1.0) - apply vertical symmetry at this point in image generation.',
+        )
+        render_group.add_argument(
             '--fnformat',
-            default='{prefix}.{seed}.png',
+            default=None,
             type=str,
             help='Overwrite the filename format. You can use any argument as wildcard enclosed in curly braces. Default is {prefix}.{seed}.png',
         )
@@ -1121,6 +1155,7 @@ def format_metadata(**kwargs):
 def metadata_dumps(opt,
                    seeds=[],
                    model_hash=None,
+                   model_id=None,
                    postprocessing=None):
     '''
     Given an Args object, returns a dict containing the keys and
@@ -1133,7 +1168,7 @@ def metadata_dumps(opt,
     # top-level metadata minus `image` or `images`
     metadata = {
         'model'       : 'stable diffusion',
-        'model_id'    : opt.model,
+        'model_id'    : model_id or opt.model,
         'model_hash'  : model_hash,
         'app_id'      : ldm.invoke.__app_id__,
         'app_version' : ldm.invoke.__version__,
@@ -1146,9 +1181,10 @@ def metadata_dumps(opt,
     )
 
     # remove any image keys not mentioned in RFC #266
-    rfc266_img_fields = ['type','postprocessing','sampler','prompt','seed','variations','steps',
+    rfc266_img_fields = ['type','postprocessing','sampler','prompt','seed','variations','steps','hires_fix',
                          'cfg_scale','threshold','perlin','step_number','width','height','extra','strength','seamless'
-                         'init_img','init_mask','facetool','facetool_strength','upscale']
+                         'init_img','init_mask','facetool','facetool_strength','upscale','h_symmetry_time_pct',
+                         'v_symmetry_time_pct']
     rfc_dict ={}
 
     for item in image_dict.items():

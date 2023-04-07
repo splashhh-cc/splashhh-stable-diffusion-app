@@ -9,6 +9,8 @@ Exports function retrieve_metadata(path)
 import os
 import re
 import json
+from pathlib import Path
+from filelock import FileLock
 from PIL import PngImagePlugin, Image
 
 # -------------------image generation utils-----
@@ -19,8 +21,26 @@ class PngWriter:
         self.outdir = outdir
         os.makedirs(outdir, exist_ok=True)
 
+    def unique_prefix(self)->str:
+        next_prefix_file = Path(self.outdir,'.next_prefix')
+        next_prefix_lock = Path(self.outdir,'.next_prefix.lock')
+        prefix = 0
+        with FileLock(next_prefix_lock):
+            if not next_prefix_file.exists():
+                prefix = self._unused_prefix()
+            else:
+                with open(next_prefix_file,'r') as file:
+                    prefix = 0
+                    try:
+                        prefix=int(file.readline())
+                    except (TypeError, ValueError):
+                        prefix=self._unused_prefix()
+            with open(next_prefix_file,'w') as file:
+                file.write(str(prefix+1))
+        return f'{prefix:06}'
+
     # gives the next unique prefix in outdir
-    def unique_prefix(self):
+    def _unused_prefix(self)->int:
         # sort reverse alphabetically until we find max+1
         dirlist = sorted(os.listdir(self.outdir), reverse=True)
         # find the first filename that matches our pattern or return 000000.0.png
@@ -28,8 +48,7 @@ class PngWriter:
             (f for f in dirlist if re.match('^(\d+)\..*\.png', f)),
             '0000000.0.png',
         )
-        basecount = int(existing_name.split('.', 1)[0]) + 1
-        return f'{basecount:06}'
+        return int(existing_name.split('.', 1)[0]) + 1
 
     # saves image named _image_ to outdir/name, writing metadata from prompt
     # returns full path of output
@@ -91,14 +110,12 @@ class PromptFormatter:
         switches.append(f'-H{opt.height       or t2i.height}')
         switches.append(f'-C{opt.cfg_scale    or t2i.cfg_scale}')
         switches.append(f'-A{opt.sampler_name or t2i.sampler_name}')
-# to do: put model name into the t2i object
-#        switches.append(f'--model{t2i.model_name}')
         if opt.seamless or t2i.seamless:
-            switches.append(f'--seamless')
+            switches.append('--seamless')
         if opt.init_img:
             switches.append(f'-I{opt.init_img}')
         if opt.fit:
-            switches.append(f'--fit')
+            switches.append('--fit')
         if opt.strength and opt.init_img is not None:
             switches.append(f'-f{opt.strength or t2i.strength}')
         if opt.gfpgan_strength:

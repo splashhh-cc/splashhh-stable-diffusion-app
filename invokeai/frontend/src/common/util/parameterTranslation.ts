@@ -66,6 +66,8 @@ export type BackendGenerationParameters = {
   variation_amount?: number;
   enable_image_debugging?: boolean;
   user_id?: string;
+  h_symmetry_time_pct?: number;
+  v_symmetry_time_pct?: number;
 };
 
 export type BackendEsrGanParameters = {
@@ -142,6 +144,9 @@ export const frontendToBackendParameters = (
     tileSize,
     variationAmount,
     width,
+    shouldUseSymmetry,
+    horizontalSymmetrySteps,
+    verticalSymmetrySteps,
   } = generationState;
 
   const {
@@ -179,12 +184,33 @@ export const frontendToBackendParameters = (
     ? randomInt(NUMPY_RAND_MIN, NUMPY_RAND_MAX)
     : seed;
 
-  // parameters common to txt2img and img2img
-  if (['txt2img', 'img2img'].includes(generationMode)) {
-    generationParameters.seamless = seamless;
+  // Symmetry Settings
+  if (shouldUseSymmetry) {
+    if (horizontalSymmetrySteps > 0) {
+      generationParameters.h_symmetry_time_pct = Math.max(
+        0,
+        Math.min(1, horizontalSymmetrySteps / steps)
+      );
+    }
+
+    if (verticalSymmetrySteps > 0) {
+      generationParameters.v_symmetry_time_pct = Math.max(
+        0,
+        Math.min(1, verticalSymmetrySteps / steps)
+      );
+    }
+  }
+
+  // txt2img exclusive parameters
+  if (generationMode === 'txt2img') {
     generationParameters.hires_fix = hiresFix;
 
     if (hiresFix) generationParameters.strength = hiresStrength;
+  }
+
+  // parameters common to txt2img and img2img
+  if (['txt2img', 'img2img'].includes(generationMode)) {
+    generationParameters.seamless = seamless;
 
     if (shouldRunESRGAN) {
       esrganParameters = {

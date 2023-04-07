@@ -11,13 +11,15 @@ import gc
 import hashlib
 import io
 import os
+import re
 import sys
 import textwrap
 import time
 import warnings
+from enum import Enum
 from pathlib import Path
 from shutil import move, rmtree
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union, List
 
 import safetensors
 import safetensors.torch
@@ -25,33 +27,35 @@ import torch
 import transformers
 from diffusers import AutoencoderKL
 from diffusers import logging as dlogging
-from diffusers.utils.logging import (get_verbosity, set_verbosity,
-                                     set_verbosity_error)
 from huggingface_hub import scan_cache_dir
 from omegaconf import OmegaConf
 from omegaconf.dictconfig import DictConfig
 from picklescan.scanner import scan_file_path
 
-from ldm.invoke.generator.diffusers_pipeline import \
-    StableDiffusionGeneratorPipeline
-from ldm.invoke.globals import (Globals, global_autoscan_dir, global_cache_dir,
-                                global_models_dir)
-from ldm.util import (ask_user, download_with_progress_bar,
-                      instantiate_from_config)
+from ldm.invoke.devices import CPU_DEVICE
+from ldm.invoke.generator.diffusers_pipeline import StableDiffusionGeneratorPipeline
+from ldm.invoke.globals import Globals, global_cache_dir
+from ldm.util import ask_user, download_with_resume, instantiate_from_config, url_attachment_name
+
+
+class SDLegacyType(Enum):
+    V1 = 1
+    V1_INPAINT = 2
+    V2 = 3
+    V2_e = 4
+    V2_v = 5
+    UNKNOWN = 99
 
 DEFAULT_MAX_MODELS = 2
-VAE_TO_REPO_ID = {  # hack, see note in convert_and_import()
-    "vae-ft-mse-840000-ema-pruned": "stabilityai/sd-vae-ft-mse",
-}
-
 
 class ModelManager(object):
     def __init__(
         self,
         config: OmegaConf,
-        device_type: str = "cpu",
+        device_type: torch.device = CPU_DEVICE,
         precision: str = "float16",
         max_loaded_models=DEFAULT_MAX_MODELS,
+        sequential_offload=False,
     ):
         """
         Initialize with the path to the models.yaml config file,
@@ -69,6 +73,7 @@ class ModelManager(object):
         self.models = {}
         self.stack = []  # this is an LRU FIFO
         self.current_model = None
+        self.sequential_offload = sequential_offload
 
     def valid_model(self, model_name: str) -> bool:
         """
@@ -98,11 +103,7 @@ class ModelManager(object):
             requested_model = self.models[model_name]["model"]
             print(f">> Retrieving model {model_name} from system RAM cache")
             self.models[model_name]["model"] = self._model_from_cpu(requested_model)
-            width = self.models[model_name]["width"]
-            height = self.models[model_name]["height"]
-            hash = self.models[model_name]["hash"]
-
-        else:  # we're about to load a new model, so potentially offload the least recently used one
+        else:
             requested_model, width, height, hash = self._load_model(model_name)
             self.models[model_name] = {
                 "model": requested_model,
@@ -113,13 +114,8 @@ class ModelManager(object):
 
         self.current_model = model_name
         self._push_newest_model(model_name)
-        return {
-            "model": requested_model,
-            "width": width,
-            "height": height,
-            "hash": hash,
-        }
-
+        return self.models[model_name]
+    
     def default_model(self) -> str | None:
         """
         Returns the name of the default model, or None
@@ -128,6 +124,7 @@ class ModelManager(object):
         for model_name in self.config:
             if self.config[model_name].get("default"):
                 return model_name
+        return list(self.config.keys())[0]  # first one
 
     def set_default_model(self, model_name: str) -> None:
         """
@@ -161,9 +158,9 @@ class ModelManager(object):
         """
         # if we are converting legacy files automatically, then
         # there are no legacy ckpts!
-        if Globals.ckpt_convert:
-            return False
         info = self.model_info(model_name)
+        if Globals.ckpt_convert or info.format=='diffusers' or self.is_v2_config(info.config):
+            return False
         if "weights" in info and info["weights"].endswith((".ckpt", ".safetensors")):
             return True
         return False
@@ -266,13 +263,13 @@ class ModelManager(object):
             self.stack.remove(model_name)
         if delete_files:
             if weights:
-                print(f"** deleting file {weights}")
+                print(f"** Deleting file {weights}")
                 Path(weights).unlink(missing_ok=True)
             elif path:
-                print(f"** deleting directory {path}")
+                print(f"** Deleting directory {path}")
                 rmtree(path, ignore_errors=True)
             elif repo_id:
-                print(f"** deleting the cached model directory for {repo_id}")
+                print(f"** Deleting the cached model directory for {repo_id}")
                 self._delete_model_from_cache(repo_id)
 
     def add_model(
@@ -368,43 +365,64 @@ class ModelManager(object):
         if not os.path.isabs(weights):
             weights = os.path.normpath(os.path.join(Globals.root, weights))
 
+        # check whether this is a v2 file and force conversion
+        convert = Globals.ckpt_convert or self.is_v2_config(config)
+
+        if matching_config := self._scan_for_matching_file(Path(weights),suffixes=['.yaml']):
+            print(f'   | Using external config file {matching_config}')
+            config = matching_config
+
+        # get the path to the custom vae, if any
+        vae_path = None
+        # first we use whatever is in the config file
+        if vae:
+            path = Path(vae if os.path.isabs(vae) else os.path.normpath(os.path.join(Globals.root, vae)))
+            if path.exists():
+                vae_path = path
+        # then we look for a file with the same basename
+        vae_path = vae_path or self._scan_for_matching_file(Path(weights))
+            
         # if converting automatically to diffusers, then we do the conversion and return
         # a diffusers pipeline
-        if Globals.ckpt_convert:
+        if convert:
             print(
                 f">> Converting legacy checkpoint {model_name} into a diffusers model..."
             )
-            from ldm.invoke.ckpt_to_diffuser import \
-                load_pipeline_from_original_stable_diffusion_ckpt
+            from ldm.invoke.ckpt_to_diffuser import load_pipeline_from_original_stable_diffusion_ckpt
 
-            if vae_config := self._choose_diffusers_vae(model_name):
-                vae = self._load_vae(vae_config)
+            try:
+                if self.list_models()[self.current_model]['status'] == 'active':
+                    self.offload_model(self.current_model)
+            except Exception:
+                pass
+            
+            if self._has_cuda():
+                torch.cuda.empty_cache()
             pipeline = load_pipeline_from_original_stable_diffusion_ckpt(
                 checkpoint_path=weights,
                 original_config_file=config,
-                vae=vae,
+                vae_path=vae_path,
                 return_generator_pipeline=True,
+                precision=torch.float16
+                if self.precision == "float16"
+                else torch.float32,
             )
+            if self.sequential_offload:
+                pipeline.enable_offload_submodels(self.device)
+            else:
+                pipeline.to(self.device)
+
             return (
-                pipeline.to(self.device).to(
-                    torch.float16 if self.precision == "float16" else torch.float32
-                ),
+                pipeline,
                 width,
                 height,
                 "NOHASH",
             )
 
-        # scan model
-        self.scan_model(model_name, weights)
-
-        print(f">> Loading {model_name} from {weights}")
-
         # for usage statistics
         if self._has_cuda():
             torch.cuda.reset_peak_memory_stats()
             torch.cuda.empty_cache()
-
-        tic = time.time()
 
         # this does the work
         if not os.path.isabs(config):
@@ -414,10 +432,13 @@ class ModelManager(object):
             weight_bytes = f.read()
         model_hash = self._cached_sha256(weights, weight_bytes)
         sd = None
-        if weights.endswith(".safetensors"):
-            sd = safetensors.torch.load(weight_bytes)
-        else:
+
+        if weights.endswith(".ckpt"):
+            self.scan_model(model_name, weights)
             sd = torch.load(io.BytesIO(weight_bytes), map_location="cpu")
+        else:
+            sd = safetensors.torch.load(weight_bytes)
+
         del weight_bytes
         # merged models from auto11 merge board are flat for some reason
         if "state_dict" in sd:
@@ -435,26 +456,17 @@ class ModelManager(object):
             print("   | Using more accurate float32 precision")
 
         # look and load a matching vae file. Code borrowed from AUTOMATIC1111 modules/sd_models.py
-        if vae:
-            if not os.path.isabs(vae):
-                vae = os.path.normpath(os.path.join(Globals.root, vae))
-            if os.path.exists(vae):
-                print(f"   | Loading VAE weights from: {vae}")
-                vae_ckpt = None
-                vae_dict = None
-                if vae.endswith(".safetensors"):
-                    vae_ckpt = safetensors.torch.load_file(vae)
-                    vae_dict = {k: v for k, v in vae_ckpt.items() if k[0:4] != "loss"}
-                else:
-                    vae_ckpt = torch.load(vae, map_location="cpu")
-                    vae_dict = {
-                        k: v
-                        for k, v in vae_ckpt["state_dict"].items()
-                        if k[0:4] != "loss"
-                    }
-                model.first_stage_model.load_state_dict(vae_dict, strict=False)
+        if vae_path:
+            print(f"   | Loading VAE weights from: {vae_path}")
+            if vae_path.suffix in [".ckpt", ".pt"]:
+                self.scan_model(vae_path.name, vae_path)
+                vae_ckpt = torch.load(vae_path, map_location="cpu")
             else:
-                print(f"   | VAE file {vae} not found. Skipping.")
+                vae_ckpt = safetensors.torch.load_file(vae_path)
+            vae_dict = {k: v for k, v in vae_ckpt["state_dict"].items() if k[0:4] != "loss"}
+            model.first_stage_model.load_state_dict(vae_dict, strict=False)
+        else:
+            print("   | Using VAE built into model.")
 
         model.to(self.device)
         # model.to doesn't change the cond_stage_model.device used to move the tokenizer output, so set it here
@@ -465,19 +477,6 @@ class ModelManager(object):
         for module in model.modules():
             if isinstance(module, (torch.nn.Conv2d, torch.nn.ConvTranspose2d)):
                 module._orig_padding_mode = module.padding_mode
-
-        # usage statistics
-        toc = time.time()
-        print(">> Model loaded in", "%4.2fs" % (toc - tic))
-
-        if self._has_cuda():
-            print(
-                ">> Max VRAM used to load the model:",
-                "%4.2fG" % (torch.cuda.max_memory_allocated() / 1e9),
-                "\n>> Current VRAM usage:"
-                "%4.2fG" % (torch.cuda.memory_allocated() / 1e9),
-            )
-
         return model, width, height, model_hash
 
     def _load_diffusers_model(self, mconfig):
@@ -486,19 +485,19 @@ class ModelManager(object):
 
         print(f">> Loading diffusers model from {name_or_path}")
         if using_fp16:
-            print("  | Using faster float16 precision")
+            print("   | Using faster float16 precision")
         else:
-            print("  | Using more accurate float32 precision")
+            print("   | Using more accurate float32 precision")
 
         # TODO: scan weights maybe?
         pipeline_args: dict[str, Any] = dict(
             safety_checker=None, local_files_only=not Globals.internet_available
         )
         if "vae" in mconfig and mconfig["vae"] is not None:
-            vae = self._load_vae(mconfig["vae"])
-            pipeline_args.update(vae=vae)
+            if vae := self._load_vae(mconfig["vae"]):
+                pipeline_args.update(vae=vae)
         if not isinstance(name_or_path, Path):
-            pipeline_args.update(cache_dir=global_cache_dir("diffusers"))
+            pipeline_args.update(cache_dir=global_cache_dir("hub"))
         if using_fp16:
             pipeline_args.update(torch_dtype=torch.float16)
             fp_args_list = [{"revision": "fp16"}, {}]
@@ -529,7 +528,10 @@ class ModelManager(object):
         dlogging.set_verbosity(verbosity)
         assert pipeline is not None, OSError(f'"{name_or_path}" could not be loaded')
 
-        pipeline.to(self.device)
+        if self.sequential_offload:
+            pipeline.enable_offload_submodels(self.device)
+        else:
+            pipeline.to(self.device)
 
         model_hash = self._diffuser_sha256(name_or_path)
 
@@ -537,9 +539,20 @@ class ModelManager(object):
         width = pipeline.unet.config.sample_size * pipeline.vae_scale_factor
         height = width
 
-        print(f"  | Default image dimensions = {width} x {height}")
+        print(f"   | Default image dimensions = {width} x {height}")
 
         return pipeline, width, height, model_hash
+
+    def is_v2_config(self, config: Path) -> bool:
+        if not os.path.isabs(config):
+            config = os.path.join(Globals.root, config)
+        try:
+            mconfig = OmegaConf.load(config)
+            return (
+                mconfig["model"]["params"]["unet_config"]["params"]["context_dim"] > 768
+            )
+        except:
+            return False
 
     def model_name_or_path(self, model_name: Union[str, DictConfig]) -> str | Path:
         if isinstance(model_name, DictConfig) or isinstance(model_name, dict):
@@ -551,7 +564,7 @@ class ModelManager(object):
                 f'"{model_name}" is not a known model name. Please check your models.yaml file'
             )
 
-        if "path" in mconfig:
+        if "path" in mconfig and mconfig["path"] is not None:
             path = Path(mconfig["path"])
             if not path.is_absolute():
                 path = Path(Globals.root, path).resolve()
@@ -577,13 +590,14 @@ class ModelManager(object):
         if self._has_cuda():
             torch.cuda.empty_cache()
 
+    @classmethod
     def scan_model(self, model_name, checkpoint):
         """
         Apply picklescanner to the indicated checkpoint and issue a warning
         and option to exit if an infected file is identified.
         """
         # scan model
-        print(f">> Scanning Model: {model_name}")
+        print(f"   | Scanning Model: {model_name}")
         scan_result = scan_file_path(checkpoint)
         if scan_result.infected_files != 0:
             if scan_result.infected_files == 1:
@@ -606,7 +620,7 @@ class ModelManager(object):
                     print("### Exiting InvokeAI")
                     sys.exit()
         else:
-            print(">> Model scanned ok!")
+            print("   | Model scanned ok")
 
     def import_diffuser_model(
         self,
@@ -628,9 +642,9 @@ class ModelManager(object):
         models.yaml file.
         """
         model_name = model_name or Path(repo_or_path).stem
-        description = description or f"imported diffusers model {model_name}"
+        model_description = description or f"Imported diffusers model {model_name}"
         new_config = dict(
-            description=description,
+            description=model_description,
             vae=vae,
             format="diffusers",
         )
@@ -642,7 +656,7 @@ class ModelManager(object):
         self.add_model(model_name, new_config, True)
         if commit_to_conf:
             self.commit(commit_to_conf)
-        return True
+        return model_name
 
     def import_ckpt_model(
         self,
@@ -652,7 +666,7 @@ class ModelManager(object):
         model_name: str = None,
         model_description: str = None,
         commit_to_conf: Path = None,
-    ) -> bool:
+    ) -> str:
         """
         Attempts to install the indicated ckpt file and returns True if successful.
 
@@ -669,18 +683,25 @@ class ModelManager(object):
         then these will be derived from the weight file name. If you provide a commit_to_conf
         path to the configuration file, then the new entry will be committed to the
         models.yaml file.
+
+        Return value is the name of the imported file, or None if an error occurred.
         """
+        if str(weights).startswith(("http:", "https:")):
+            model_name = model_name or url_attachment_name(weights)
+
         weights_path = self._resolve_path(weights, "models/ldm/stable-diffusion-v1")
         config_path = self._resolve_path(config, "configs/stable-diffusion")
 
         if weights_path is None or not weights_path.exists():
-            return False
+            return
         if config_path is None or not config_path.exists():
-            return False
+            return
 
-        model_name = model_name or Path(weights).stem
+        model_name = (
+            model_name or Path(weights).stem
+        )  # note this gives ugly pathnames if used on a URL without a Content-Disposition header
         model_description = (
-            model_description or f"imported stable diffusion weights file {model_name}"
+            model_description or f"Imported stable diffusion weights file {model_name}"
         )
         new_config = dict(
             weights=str(weights_path),
@@ -695,43 +716,254 @@ class ModelManager(object):
         self.add_model(model_name, new_config, True)
         if commit_to_conf:
             self.commit(commit_to_conf)
-        return True
+        return model_name
 
-    def autoconvert_weights(
+    @classmethod
+    def probe_model_type(self, checkpoint: dict) -> SDLegacyType:
+        """
+        Given a pickle or safetensors model object, probes contents
+        of the object and returns an SDLegacyType indicating its
+        format. Valid return values include:
+        SDLegacyType.V1
+        SDLegacyType.V1_INPAINT
+        SDLegacyType.V2     (V2 prediction type unknown)
+        SDLegacyType.V2_e   (V2 using 'epsilon' prediction type)
+        SDLegacyType.V2_v   (V2 using 'v_prediction' prediction type)
+        SDLegacyType.UNKNOWN
+        """
+        global_step = checkpoint.get("global_step")
+        state_dict = checkpoint.get("state_dict") or checkpoint
+
+        try:
+            state_dict = checkpoint.get("state_dict") or checkpoint
+            key_name = "model.diffusion_model.input_blocks.2.1.transformer_blocks.0.attn2.to_k.weight"
+            if key_name in state_dict and state_dict[key_name].shape[-1] == 1024:
+                if global_step == 220000:
+                    return SDLegacyType.V2_e
+                elif global_step == 110000:
+                    return SDLegacyType.V2_v
+                else:
+                    return SDLegacyType.V2
+            # otherwise we assume a V1 file
+            in_channels = state_dict[
+                "model.diffusion_model.input_blocks.0.0.weight"
+            ].shape[1]
+            if in_channels == 9:
+                return SDLegacyType.V1_INPAINT
+            elif in_channels == 4:
+                return SDLegacyType.V1
+            else:
+                return SDLegacyType.UNKNOWN
+        except KeyError:
+            return SDLegacyType.UNKNOWN
+
+    def heuristic_import(
         self,
-        conf_path: Path,
-        weights_directory: Path = None,
-        dest_directory: Path = None,
-    ):
+        path_url_or_repo: str,
+        convert: bool = False,
+        model_name: str = None,
+        description: str = None,
+        model_config_file: Path = None,
+        commit_to_conf: Path = None,
+        config_file_callback: Callable[[Path], Path] = None,
+    ) -> str:
         """
-        Scan the indicated directory for .ckpt files, convert into diffuser models,
-        and import.
+        Accept a string which could be:
+           - a HF diffusers repo_id
+           - a URL pointing to a legacy .ckpt or .safetensors file
+           - a local path pointing to a legacy .ckpt or .safetensors file
+           - a local directory containing .ckpt and .safetensors files
+           - a local directory containing a diffusers model
+
+        After determining the nature of the model and downloading it
+        (if necessary), the file is probed to determine the correct
+        configuration file (if needed) and it is imported.
+
+        The model_name and/or description can be provided. If not, they will
+        be generated automatically.
+
+        If convert is true, legacy models will be converted to diffusers
+        before importing.
+
+        If commit_to_conf is provided, the newly loaded model will be written
+        to the `models.yaml` file at the indicated path. Otherwise, the changes
+        will only remain in memory.
+
+        The (potentially derived) name of the model is returned on success, or None
+        on failure. When multiple models are added from a directory, only the last
+        imported one is returned.
         """
-        weights_directory = weights_directory or global_autoscan_dir()
-        dest_directory = dest_directory or Path(
-            global_models_dir(), Globals.converted_ckpts_dir
-        )
+        model_path: Path = None
+        thing = path_url_or_repo  # to save typing
+        is_temporary = False
 
-        print(">> Checking for unconverted .ckpt files in {weights_directory}")
-        ckpt_files = dict()
-        for root, dirs, files in os.walk(weights_directory):
-            for f in files:
-                if not f.endswith(".ckpt"):
-                    continue
-                basename = Path(f).stem
-                dest = Path(dest_directory, basename)
-                if not dest.exists():
-                    ckpt_files[Path(root, f)] = dest
+        print(f">> Probing {thing} for import")
 
-        if len(ckpt_files) == 0:
+        if thing.startswith(("http:", "https:", "ftp:")):
+            print(f"   | {thing} appears to be a URL")
+            model_path = self._resolve_path(
+                thing, "models/ldm/stable-diffusion-v1"
+            )  # _resolve_path does a download if needed
+            is_temporary = True
+
+        elif Path(thing).is_file() and thing.endswith((".ckpt", ".safetensors")):
+            if Path(thing).stem in ["model", "diffusion_pytorch_model"]:
+                print(
+                    f"   | {Path(thing).name} appears to be part of a diffusers model. Skipping import"
+                )
+                return
+            else:
+                print(f"   | {thing} appears to be a checkpoint file on disk")
+                model_path = self._resolve_path(thing, "models/ldm/stable-diffusion-v1")
+
+        elif Path(thing).is_dir() and Path(thing, "model_index.json").exists():
+            print(f"  | {thing} appears to be a diffusers file on disk")
+            model_name = self.import_diffuser_model(
+                thing,
+                model_name=model_name,
+                description=description,
+                commit_to_conf=commit_to_conf,
+            )
+
+        elif Path(thing).is_dir():
+            if (Path(thing) / "model_index.json").exists():
+                print(f"  | {thing} appears to be a diffusers model.")
+                model_name = self.import_diffuser_model(
+                    thing, commit_to_conf=commit_to_conf
+                )
+            else:
+                print(
+                    f"  |{thing} appears to be a directory. Will scan for models to import"
+                )
+                for m in list(Path(thing).rglob("*.ckpt")) + list(
+                    Path(thing).rglob("*.safetensors")
+                ):
+                    if model_name := self.heuristic_import(
+                        str(m),
+                        convert,
+                        commit_to_conf=commit_to_conf,
+                        config_file_callback=config_file_callback,
+                    ):
+                        print(f" >> {model_name} successfully imported")
+                return model_name
+
+        elif re.match(r"^[\w.+-]+/[\w.+-]+$", thing):
+            print(f"  | {thing} appears to be a HuggingFace diffusers repo_id")
+            model_name = self.import_diffuser_model(
+                thing, commit_to_conf=commit_to_conf
+            )
+            pipeline, _, _, _ = self._load_diffusers_model(self.config[model_name])
+            return model_name
+        else:
+            print(
+                f"** {thing}: Unknown thing. Please provide a URL, file path, directory or HuggingFace repo_id"
+            )
+
+        # Model_path is set in the event of a legacy checkpoint file.
+        # If not set, we're all done
+        if not model_path:
             return
 
-        print(
-            f">> New .ckpt file(s) found in {weights_directory}. Optimizing and importing..."
-        )
-        for ckpt in ckpt_files:
-            self.convert_and_import(ckpt, ckpt_files[ckpt])
-        self.commit(conf_path)
+        if model_path.stem in self.config:  # already imported
+            print("  | Already imported. Skipping")
+            return model_path.stem
+
+        # another round of heuristics to guess the correct config file.
+        checkpoint = None
+        if model_path.suffix.endswith((".ckpt", ".pt")):
+            self.scan_model(model_path, model_path)
+            checkpoint = torch.load(model_path)
+        else:
+            checkpoint = safetensors.torch.load_file(model_path)
+        # additional probing needed if no config file provided
+        if model_config_file is None:
+            # Is there a like-named .yaml file in the same directory as the
+            # weights file? If so, we treat this as our model
+            if model_path.with_suffix(".yaml").exists():
+                model_config_file = model_path.with_suffix(".yaml")
+                print(f"   | Using config file {model_config_file.name}")
+            else:
+                model_type = self.probe_model_type(checkpoint)
+                if model_type == SDLegacyType.V1:
+                    print("   | SD-v1 model detected")
+                    model_config_file = Path(
+                        Globals.root, "configs/stable-diffusion/v1-inference.yaml"
+                    )
+                elif model_type == SDLegacyType.V1_INPAINT:
+                    print("   | SD-v1 inpainting model detected")
+                    model_config_file = Path(
+                        Globals.root,
+                        "configs/stable-diffusion/v1-inpainting-inference.yaml",
+                    )
+                elif model_type == SDLegacyType.V2_v:
+                    print("   | SD-v2-v model detected")
+                    model_config_file = Path(
+                        Globals.root, "configs/stable-diffusion/v2-inference-v.yaml"
+                    )
+                elif model_type == SDLegacyType.V2_e:
+                    print("   | SD-v2-e model detected")
+                    model_config_file = Path(
+                        Globals.root, "configs/stable-diffusion/v2-inference.yaml"
+                    )
+                elif model_type == SDLegacyType.V2:
+                    print(
+                        f"** {thing} is a V2 checkpoint file, but its parameterization cannot be determined. Please provide the configuration file type or path."
+                    )
+                else:
+                    print(
+                        f"** {thing} is a legacy checkpoint file but not a known Stable Diffusion model. Please provide the configuration file type or path."
+                    )
+
+            if not model_config_file and config_file_callback:
+                model_config_file = config_file_callback(model_path)
+            if not model_config_file:
+                return
+
+        if self.is_v2_config(model_config_file):
+            convert = True
+            print("   | This SD-v2 model will be converted to diffusers format for use")
+
+        if (vae_path := self._scan_for_matching_file(model_path)):
+            print(f"   | Using VAE file {vae_path.name}")
+        
+        if convert:
+            diffuser_path = Path(
+                Globals.root, "models", Globals.converted_ckpts_dir, model_path.stem
+            )
+            vae = None if vae_path else dict(repo_id="stabilityai/sd-vae-ft-mse")
+            model_name = self.convert_and_import(
+                model_path,
+                diffusers_path=diffuser_path,
+                vae=vae,
+                vae_path=vae_path,
+                model_name=model_name,
+                model_description=description,
+                original_config_file=model_config_file,
+                commit_to_conf=commit_to_conf,
+                scan_needed=False,
+            )
+            # in the event that this file was downloaded automatically prior to conversion
+            # we do not keep the original .ckpt/.safetensors around
+            if is_temporary:
+                model_path.unlink(missing_ok=True)
+        else:
+            model_name = self.import_ckpt_model(
+                model_path,
+                config=model_config_file,
+                model_name=model_name,
+                model_description=description,
+                vae=str(
+                    vae_path
+                    or Path(
+                        Globals.root,
+                        "models/ldm/stable-diffusion-v1/vae-ft-mse-840000-ema-pruned.ckpt",
+                    )
+                ),
+                commit_to_conf=commit_to_conf,
+            )
+        if commit_to_conf:
+            self.commit(commit_to_conf)
+        return model_name
 
     def convert_and_import(
         self,
@@ -739,18 +971,25 @@ class ModelManager(object):
         diffusers_path: Path,
         model_name=None,
         model_description=None,
-        vae=None,
+        vae: dict = None,
+        vae_path: Path = None,
         original_config_file: Path = None,
         commit_to_conf: Path = None,
-    ) -> dict:
+        scan_needed: bool = True,
+    ) -> str:
         """
         Convert a legacy ckpt weights file to diffuser model and import
         into models.yaml.
         """
-        new_config = None
-        import transformers
+        ckpt_path = self._resolve_path(ckpt_path, "models/ldm/stable-diffusion-v1")
+        if original_config_file:
+            original_config_file = self._resolve_path(
+                original_config_file, "configs/stable-diffusion"
+            )
 
-        from ldm.invoke.ckpt_to_diffuser import convert_ckpt_to_diffuser
+        new_config = None
+
+        from ldm.invoke.ckpt_to_diffuser import convert_ckpt_to_diffusers
 
         if diffusers_path.exists():
             print(
@@ -759,23 +998,28 @@ class ModelManager(object):
             return
 
         model_name = model_name or diffusers_path.name
-        model_description = model_description or "Optimized version of {model_name}"
+        model_description = model_description or f"Optimized version of {model_name}"
         print(f">> Optimizing {model_name} (30-60s)")
         try:
-            # By passing the specified VAE too the conversion function, the autoencoder
+            # By passing the specified VAE to the conversion function, the autoencoder
             # will be built into the model rather than tacked on afterward via the config file
-            vae_model = self._load_vae(vae) if vae else None
-            convert_ckpt_to_diffuser(
+            vae_model=None
+            if vae:
+                vae_model=self._load_vae(vae)
+                vae_path=None
+            convert_ckpt_to_diffusers(
                 ckpt_path,
                 diffusers_path,
                 extract_ema=True,
                 original_config_file=original_config_file,
                 vae=vae_model,
+                vae_path=vae_path,
+                scan_needed=scan_needed,
             )
             print(
-                f"  | Success. Optimized model is now located at {str(diffusers_path)}"
+                f"   | Success. Optimized model is now located at {str(diffusers_path)}"
             )
-            print(f"  | Writing new config file entry for {model_name}")
+            print(f"   | Writing new config file entry for {model_name}")
             new_config = dict(
                 path=str(diffusers_path),
                 description=model_description,
@@ -789,9 +1033,11 @@ class ModelManager(object):
             print(">> Conversion succeeded")
         except Exception as e:
             print(f"** Conversion failed: {str(e)}")
-            print("** If you are trying to convert an inpainting or 2.X model, please indicate the correct config file (e.g. v1-inpainting-inference.yaml)")
+            print(
+                "** If you are trying to convert an inpainting or 2.X model, please indicate the correct config file (e.g. v1-inpainting-inference.yaml)"
+            )
 
-        return new_config
+        return model_name
 
     def search_models(self, search_folder):
         print(f">> Finding Models In: {search_folder}")
@@ -799,47 +1045,20 @@ class ModelManager(object):
         models_folder_safetensors = Path(search_folder).glob("**/*.safetensors")
 
         ckpt_files = [x for x in models_folder_ckpt if x.is_file()]
-        safetensor_files = [x for x in models_folder_safetensors if x.is_file]
+        safetensor_files = [x for x in models_folder_safetensors if x.is_file()]
 
         files = ckpt_files + safetensor_files
 
         found_models = []
         for file in files:
-            found_models.append(
-                {"name": file.stem, "location": str(file.resolve()).replace("\\", "/")}
-            )
+            location = str(file.resolve()).replace("\\", "/")
+            if (
+                "model.safetensors" not in location
+                and "diffusion_pytorch_model.safetensors" not in location
+            ):
+                found_models.append({"name": file.stem, "location": location})
 
         return search_folder, found_models
-
-    def _choose_diffusers_vae(
-        self, model_name: str, vae: str = None
-    ) -> Union[dict, str]:
-        # In the event that the original entry is using a custom ckpt VAE, we try to
-        # map that VAE onto a diffuser VAE using a hard-coded dictionary.
-        # I would prefer to do this differently: We load the ckpt model into memory, swap the
-        # VAE in memory, and then pass that to convert_ckpt_to_diffuser() so that the swapped
-        # VAE is built into the model. However, when I tried this I got obscure key errors.
-        if vae:
-            return vae
-        if model_name in self.config and (
-            vae_ckpt_path := self.model_info(model_name).get("vae", None)
-        ):
-            vae_basename = Path(vae_ckpt_path).stem
-            diffusers_vae = None
-            if diffusers_vae := VAE_TO_REPO_ID.get(vae_basename, None):
-                print(
-                    f">> {vae_basename} VAE corresponds to known {diffusers_vae} diffusers version"
-                )
-                vae = {"repo_id": diffusers_vae}
-            else:
-                print(
-                    f'** Custom VAE "{vae_basename}" found, but corresponding diffusers model unknown'
-                )
-                print(
-                    '** Using "stabilityai/sd-vae-ft-mse"; If this isn\'t right, please edit the model config'
-                )
-                vae = {"repo_id": "stabilityai/sd-vae-ft-mse"}
-        return vae
 
     def _make_cache_room(self) -> None:
         num_loaded_models = len(self.models)
@@ -897,27 +1116,39 @@ class ModelManager(object):
         to the 2.3.0 "diffusers" version. This should be a one-time operation, called at
         script startup time.
         """
-        # Three transformer models to check: bert, clip and safety checker
+        # Three transformer models to check: bert, clip and safety checker, and
+        # the diffusers as well
+        models_dir = Path(Globals.root, "models")
         legacy_locations = [
             Path(
-                "CompVis/stable-diffusion-safety-checker/models--CompVis--stable-diffusion-safety-checker"
+                models_dir,
+                "CompVis/stable-diffusion-safety-checker/models--CompVis--stable-diffusion-safety-checker",
             ),
             Path("bert-base-uncased/models--bert-base-uncased"),
             Path(
                 "openai/clip-vit-large-patch14/models--openai--clip-vit-large-patch14"
             ),
         ]
-        models_dir = Path(Globals.root, "models")
+        legacy_locations.extend(list(global_cache_dir("diffusers").glob("*")))
         legacy_layout = False
         for model in legacy_locations:
-            legacy_layout = legacy_layout or Path(models_dir, model).exists()
+            legacy_layout = legacy_layout or model.exists()
         if not legacy_layout:
             return
 
         print(
-            "** Legacy version <= 2.2.5 model directory layout detected. Reorganizing."
+            """
+>> ALERT:
+>> The location of your previously-installed diffusers models needs to move from
+>> invokeai/models/diffusers to invokeai/models/hub due to a change introduced by
+>> diffusers version 0.14. InvokeAI will now move all models from the "diffusers" directory
+>> into "hub" and then remove the diffusers directory. This is a quick, safe, one-time
+>> operation. However if you have customized either of these directories and need to
+>> make adjustments, please press ctrl-C now to abort and relaunch InvokeAI when you are ready.
+>> Otherwise press <enter> to continue."""
         )
         print("** This is a quick one-time operation.")
+        input("continue> ")
 
         # transformer files get moved into the hub directory
         if cls._is_huggingface_hub_directory_present():
@@ -929,32 +1160,19 @@ class ModelManager(object):
         for model in legacy_locations:
             source = models_dir / model
             dest = hub / model.stem
+            if dest.exists() and not source.exists():
+                continue
             print(f"** {source} => {dest}")
             if source.exists():
-                if dest.exists():
-                    rmtree(source)
+                if dest.is_symlink():
+                    print(f"** Found symlink at {dest.name}. Not migrating.")
+                elif dest.exists():
+                    if source.is_dir():
+                        rmtree(source)
+                    else:
+                        source.unlink()
                 else:
                     move(source, dest)
-
-        # anything else gets moved into the diffusers directory
-        if cls._is_huggingface_hub_directory_present():
-            diffusers = global_cache_dir("diffusers")
-        else:
-            diffusers = models_dir / "diffusers"
-
-        os.makedirs(diffusers, exist_ok=True)
-        for root, dirs, _ in os.walk(models_dir, topdown=False):
-            for dir in dirs:
-                full_path = Path(root, dir)
-                if full_path.is_relative_to(hub) or full_path.is_relative_to(diffusers):
-                    continue
-                if Path(dir).match("models--*--*"):
-                    dest = diffusers / dir
-                    print(f"** {full_path} => {dest}")
-                    if dest.exists():
-                        rmtree(full_path)
-                    else:
-                        move(full_path, dest)
 
         # now clean up by removing any empty directories
         empty = [
@@ -971,12 +1189,11 @@ class ModelManager(object):
     ) -> Optional[Path]:
         resolved_path = None
         if str(source).startswith(("http:", "https:", "ftp:")):
-            basename = os.path.basename(source)
-            if not os.path.isabs(dest_directory):
-                dest_directory = os.path.join(Globals.root, dest_directory)
-            dest = os.path.join(dest_directory, basename)
-            if download_with_progress_bar(str(source), Path(dest)):
-                resolved_path = Path(dest)
+            dest_directory = Path(dest_directory)
+            if not dest_directory.is_absolute():
+                dest_directory = Globals.root / dest_directory
+            dest_directory.mkdir(parents=True, exist_ok=True)
+            resolved_path = download_with_resume(str(source), dest_directory)
         else:
             if not os.path.isabs(source):
                 source = os.path.join(Globals.root, source)
@@ -990,25 +1207,29 @@ class ModelManager(object):
         self.models.pop(model_name, None)
 
     def _model_to_cpu(self, model):
-        if self.device == "cpu":
+        if self.device == CPU_DEVICE:
             return model
 
-        # diffusers really really doesn't like us moving a float16 model onto CPU
-        verbosity = get_verbosity()
-        set_verbosity_error()
-        model.cond_stage_model.device = "cpu"
-        model.to("cpu")
-        set_verbosity(verbosity)
+        if isinstance(model, StableDiffusionGeneratorPipeline):
+            model.offload_all()
+            return model
+
+        model.cond_stage_model.device = CPU_DEVICE
+        model.to(CPU_DEVICE)
 
         for submodel in ("first_stage_model", "cond_stage_model", "model"):
             try:
-                getattr(model, submodel).to("cpu")
+                getattr(model, submodel).to(CPU_DEVICE)
             except AttributeError:
                 pass
         return model
 
     def _model_from_cpu(self, model):
-        if self.device == "cpu":
+        if self.device == CPU_DEVICE:
+            return model
+
+        if isinstance(model, StableDiffusionGeneratorPipeline):
+            model.ready()
             return model
 
         model.to(self.device)
@@ -1050,7 +1271,7 @@ class ModelManager(object):
             path = name_or_path
         else:
             owner, repo = name_or_path.split("/")
-            path = Path(global_cache_dir("diffusers") / f"models--{owner}--{repo}")
+            path = Path(global_cache_dir("hub") / f"models--{owner}--{repo}")
         if not path.exists():
             return None
         hashpath = path / "checksum.sha256"
@@ -1058,7 +1279,7 @@ class ModelManager(object):
             with open(hashpath) as f:
                 hash = f.read()
             return hash
-        print("  | Calculating sha256 hash of model files")
+        print("   | Calculating sha256 hash of model files")
         tic = time.time()
         sha = hashlib.sha256()
         count = 0
@@ -1070,7 +1291,7 @@ class ModelManager(object):
                         sha.update(chunk)
         hash = sha.hexdigest()
         toc = time.time()
-        print(f"  | sha256 = {hash} ({count} files hashed in", "%4.2fs)" % (toc - tic))
+        print(f"   | sha256 = {hash} ({count} files hashed in", "%4.2fs)" % (toc - tic))
         with open(hashpath, "w") as f:
             f.write(hash)
         return hash
@@ -1100,22 +1321,43 @@ class ModelManager(object):
             f.write(hash)
         return hash
 
+    @classmethod
+    def _scan_for_matching_file(
+            self,model_path: Path,
+            suffixes: List[str]=['.vae.pt','.vae.ckpt','.vae.safetensors']
+    )->Path:
+        """
+        Find a file with same basename as the indicated model, but with one
+        of the suffixes passed.
+        """
+        # look for a custom vae
+        vae_path = None
+        for suffix in suffixes:
+            if model_path.with_suffix(suffix).exists():
+                vae_path = model_path.with_suffix(suffix)
+        return vae_path
+                               
     def _load_vae(self, vae_config) -> AutoencoderKL:
         vae_args = {}
-        name_or_path = self.model_name_or_path(vae_config)
+        try:
+            name_or_path = self.model_name_or_path(vae_config)
+        except Exception:
+            return None
+        if name_or_path is None:
+            return None
         using_fp16 = self.precision == "float16"
 
         vae_args.update(
-            cache_dir=global_cache_dir("diffusers"),
+            cache_dir=global_cache_dir("hub"),
             local_files_only=not Globals.internet_available,
         )
 
-        print(f"  | Loading diffusers VAE from {name_or_path}")
+        print(f"   | Loading diffusers VAE from {name_or_path}")
         if using_fp16:
             vae_args.update(torch_dtype=torch.float16)
             fp_args_list = [{"revision": "fp16"}, {}]
         else:
-            print("  | Using more accurate float32 precision")
+            print("   | Using more accurate float32 precision")
             fp_args_list = [{}]
 
         vae = None
@@ -1156,12 +1398,12 @@ class ModelManager(object):
                     hashes_to_delete.add(revision.commit_hash)
         strategy = cache_info.delete_revisions(*hashes_to_delete)
         print(
-            f"** deletion of this model is expected to free {strategy.expected_freed_size_str}"
+            f"** Deletion of this model is expected to free {strategy.expected_freed_size_str}"
         )
         strategy.execute()
 
     @staticmethod
-    def _abs_path(path: Union(str, Path)) -> Path:
+    def _abs_path(path: str | Path) -> Path:
         if path is None or Path(path).is_absolute():
             return path
         return Path(Globals.root, path).resolve()
