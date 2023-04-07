@@ -72,7 +72,7 @@ class InvokeAIWebServer:
 
         # load control
         # concurrently allow number of image generation:
-        concurrent_gen = 2
+        concurrent_gen = 1
         self.image_gen_semaphore = Semaphore(concurrent_gen)
         max_waiters = 10
         self.max_waiters = concurrent_gen - max_waiters + 1
