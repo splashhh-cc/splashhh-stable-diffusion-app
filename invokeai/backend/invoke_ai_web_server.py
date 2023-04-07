@@ -920,7 +920,7 @@ class InvokeAIWebServer:
                     write_analytics(self.result_path, analytics)
                     raise Exception("Too many concurrent requests. Please try again later.")
 
-                with self.acquire_emit_queue_len(self.image_gen_semaphore, request.sid):
+                with self.image_gen_semaphore:
                     analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
                     analytics["process_time_sec"] = time.time()
 
@@ -1479,7 +1479,7 @@ class InvokeAIWebServer:
                 write_analytics(self.result_path, analytics)
                 raise Exception("Too many concurrent requests. Please try again later.")
 
-            with self.acquire_emit_queue_len(self.image_gen_semaphore, request.sid):
+            with self.image_gen_semaphore:
                 analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
                 analytics["process_time_sec"] = time.time()
 
