@@ -81,6 +81,7 @@ class CodeFormerRestoration():
                         output = cf(cropped_face_t, w=fidelity, adain=True)[0]
                         restored_face = tensor2img(output.squeeze(0), rgb2bgr=True, min_max=(-1, 1))
                     del output
+                    torch.cuda.synchronize()
                     torch.cuda.empty_cache()
                 except RuntimeError as error:
                     print(f'\tFailed inference for CodeFormer: {error}.')

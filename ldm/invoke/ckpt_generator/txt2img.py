@@ -60,6 +60,7 @@ class CkptTxt2Img(CkptGenerator):
                 self.model.cond_stage_model.device = 'cpu'
                 self.model.cond_stage_model.to('cpu')
                 gc.collect()
+                torch.cuda.synchronize()
                 torch.cuda.empty_cache()
 
             return self.sample_to_image(samples)

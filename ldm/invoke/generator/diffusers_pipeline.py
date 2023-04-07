@@ -423,6 +423,7 @@ class StableDiffusionGeneratorPipeline(StableDiffusionPipeline):
             run_id=run_id,
             callback=callback)
         # https://discuss.huggingface.co/t/memory-usage-by-later-pipeline-stages/23699
+        torch.cuda.synchronize()
         torch.cuda.empty_cache()
 
         with torch.inference_mode():
@@ -600,6 +601,7 @@ class StableDiffusionGeneratorPipeline(StableDiffusionPipeline):
             callback=callback)
 
         # https://discuss.huggingface.co/t/memory-usage-by-later-pipeline-stages/23699
+        torch.cuda.synchronize()
         torch.cuda.empty_cache()
 
         with torch.inference_mode():
@@ -679,6 +681,7 @@ class StableDiffusionGeneratorPipeline(StableDiffusionPipeline):
             self.invokeai_diffuser.model_forward_callback = self._unet_forward
 
         # https://discuss.huggingface.co/t/memory-usage-by-later-pipeline-stages/23699
+        torch.cuda.synchronize()
         torch.cuda.empty_cache()
 
         with torch.inference_mode():

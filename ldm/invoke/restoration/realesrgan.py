@@ -86,6 +86,7 @@ class ESRGAN():
             res = Image.blend(image, res, strength)
 
         if torch.cuda.is_available():
+            torch.cuda.synchronize()
             torch.cuda.empty_cache()
         upsampler = None
 

@@ -605,6 +605,7 @@ class Decoder(nn.Module):
         # prepare for up sampling
         gc.collect()
         if h.device.type == 'cuda':
+            torch.cuda.synchronize()
             torch.cuda.empty_cache()
 
         # upsampling

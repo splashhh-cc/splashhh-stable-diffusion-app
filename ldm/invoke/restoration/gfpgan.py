@@ -81,6 +81,7 @@ class GFPGAN():
 
 
         if torch.cuda.is_available():
+            torch.cuda.synchronize()
             torch.cuda.empty_cache()
         self.gfpgan = None
 

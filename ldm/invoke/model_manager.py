@@ -115,7 +115,7 @@ class ModelManager(object):
         self.current_model = model_name
         self._push_newest_model(model_name)
         return self.models[model_name]
-    
+
     def default_model(self) -> str | None:
         """
         Returns the name of the default model, or None
@@ -320,6 +320,7 @@ class ModelManager(object):
         # for usage statistics
         if self._has_cuda():
             torch.cuda.reset_peak_memory_stats()
+            torch.cuda.synchronize()
             torch.cuda.empty_cache()
 
         tic = time.time()
@@ -381,7 +382,7 @@ class ModelManager(object):
                 vae_path = path
         # then we look for a file with the same basename
         vae_path = vae_path or self._scan_for_matching_file(Path(weights))
-            
+
         # if converting automatically to diffusers, then we do the conversion and return
         # a diffusers pipeline
         if convert:
@@ -395,8 +396,9 @@ class ModelManager(object):
                     self.offload_model(self.current_model)
             except Exception:
                 pass
-            
+
             if self._has_cuda():
+                torch.cuda.synchronize()
                 torch.cuda.empty_cache()
             pipeline = load_pipeline_from_original_stable_diffusion_ckpt(
                 checkpoint_path=weights,
@@ -422,6 +424,7 @@ class ModelManager(object):
         # for usage statistics
         if self._has_cuda():
             torch.cuda.reset_peak_memory_stats()
+            torch.cuda.synchronize()
             torch.cuda.empty_cache()
 
         # this does the work
@@ -588,6 +591,7 @@ class ModelManager(object):
 
         gc.collect()
         if self._has_cuda():
+            torch.cuda.synchronize()
             torch.cuda.empty_cache()
 
     @classmethod
@@ -925,7 +929,7 @@ class ModelManager(object):
 
         if (vae_path := self._scan_for_matching_file(model_path)):
             print(f"   | Using VAE file {vae_path.name}")
-        
+
         if convert:
             diffuser_path = Path(
                 Globals.root, "models", Globals.converted_ckpts_dir, model_path.stem
@@ -1336,7 +1340,7 @@ class ModelManager(object):
             if model_path.with_suffix(suffix).exists():
                 vae_path = model_path.with_suffix(suffix)
         return vae_path
-                               
+
     def _load_vae(self, vae_config) -> AutoencoderKL:
         vae_args = {}
         try:

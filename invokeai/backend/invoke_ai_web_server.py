@@ -1513,6 +1513,7 @@ class InvokeAIWebServer:
         if self.generate.device.type == "cuda":
             import torch.cuda
 
+            torch.cuda.synchronize()
             torch.cuda.empty_cache()
 
     def parameters_to_generated_image_metadata(self, parameters):
