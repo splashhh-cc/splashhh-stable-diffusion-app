@@ -857,6 +857,7 @@ class InvokeAIWebServer:
                     f'\n>> Image Generation Parameters:\n\n{printable_parameters}\n')
                 print(f'>> ESRGAN Parameters: {esrgan_parameters}')
                 print(f'>> Facetool Parameters: {facetool_parameters}')
+                print(f'>> Usdder ID: {user_id}')
                 print(f'>> User ID: {user_id}')
                 self.generate_images(
                     generation_parameters,
@@ -921,6 +922,7 @@ class InvokeAIWebServer:
                     raise Exception("Too many concurrent requests. Please try again later.")
 
                 with self.image_gen_semaphore:
+                    print(f"{eventlet.getcurrent()} acquired the semaphore")
                     analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
                     analytics["process_time_sec"] = time.time()
 
@@ -956,6 +958,10 @@ class InvokeAIWebServer:
                     analytics["is_served"] = True
                     analytics["process_time_sec"] = round(time.time() - analytics["process_time_sec"], 2)
                     write_analytics(self.result_path, analytics)
+                    # emit queue length:
+                    print(f"{eventlet.getcurrent()} released the semaphore")
+                    queue_len = abs(self.image_gen_semaphore.balance) - 1 if self.image_gen_semaphore.balance < 0 else 0
+                    self.socketio.emit("serverMsg", {"message": "queue length: " + (str(queue_len))})
 
                 progress.set_current_status("common.statusSavingImage")
                 socketio.emit("progressUpdate", progress.to_formatted_dict(), to=request.sid)
@@ -1479,7 +1485,9 @@ class InvokeAIWebServer:
                 write_analytics(self.result_path, analytics)
                 raise Exception("Too many concurrent requests. Please try again later.")
 
+            print(f"{eventlet.getcurrent()} acquired the semaphore pre")
             with self.image_gen_semaphore:
+                print(f"{eventlet.getcurrent()} acquired the semaphore")
                 analytics["queue_wait_time_sec"] = round(time.time() - analytics["queue_wait_time_sec"], 2)
                 analytics["process_time_sec"] = time.time()
 
@@ -1492,6 +1500,11 @@ class InvokeAIWebServer:
                 analytics["is_served"] = True
                 analytics["process_time_sec"] = round(time.time() - analytics["process_time_sec"], 2)
                 write_analytics(self.result_path, analytics)
+                print(f"{eventlet.getcurrent()} released the semaphore")
+                # emit queue length:
+                print(f"{eventlet.getcurrent()} released the semaphore")
+                queue_len = abs(self.image_gen_semaphore.balance) - 1 if self.image_gen_semaphore.balance < 0 else 0
+                self.socketio.emit("serverMsg", {"message": "queue length: " + (str(queue_len))})
 
         except KeyboardInterrupt:
             # Clear the CUDA cache on an exception
@@ -1828,7 +1841,7 @@ class InvokeAIWebServer:
                 err_msg = parameter_type_str + ' exceeded max limit for key: ' + key + '. Setting to max limit: ' + str(
                     max_limits[key])
                 print(err_msg)
-                self.socketio.emit("error", {"message": (str(err_msg))}, to=request.sid)
+                self.socketio.emit("serverMsg", {"message": (str(err_msg))}, to=request.sid)
 
     # emit the length of the queue with the expected plus one addition, then acquire the lock
     @contextmanager
