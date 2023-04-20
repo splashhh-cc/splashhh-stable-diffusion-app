@@ -3,7 +3,7 @@
 [//]: # (![Splashhh project logo]&#40;Splashhh-header-img1.webp&#41;)
 <img alt="splashhh project logo" src="./Splashhh-header-img1.webp" width="500" />
 
-# InvokeAI by Splashhh: A Stable Diffusion Playground
+# InvokeAI by Splashhh: A Stable Diffusion Playground: https://sd.splashhh.cc/
 
 [![latest release badge]][latest release link] [![github stars badge]][github stars link] [![github forks badge]][github forks link]
 
